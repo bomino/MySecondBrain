@@ -10,6 +10,7 @@ const createNoteSchema = z.object({
   content: z.any().default({}),
   parentId: z.string().uuid().nullable().optional(),
   isSensitive: z.boolean().default(false),
+  tagIds: z.array(z.string().uuid()).default([]),
 });
 
 export async function GET(req: NextRequest) {
@@ -94,6 +95,16 @@ export async function POST(req: NextRequest) {
       isSensitive,
     },
   });
+
+  if (parsed.data.tagIds.length > 0) {
+    await db.taggable.createMany({
+      data: parsed.data.tagIds.map((tagId) => ({
+        tagId,
+        entityType: "note",
+        entityId: note.id,
+      })),
+    });
+  }
 
   return success(note, 201);
 }

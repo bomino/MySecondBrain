@@ -10,6 +10,7 @@ const updateNoteSchema = z.object({
   content: z.any().optional(),
   parentId: z.string().uuid().nullable().optional(),
   isSensitive: z.boolean().optional(),
+  tagIds: z.array(z.string().uuid()).optional(),
 });
 
 type Params = { params: Promise<{ id: string }> };
@@ -96,6 +97,21 @@ export async function PUT(req: NextRequest, { params }: Params) {
           context: "",
         })),
         skipDuplicates: true,
+      });
+    }
+  }
+
+  if (parsed.data.tagIds !== undefined) {
+    await db.taggable.deleteMany({
+      where: { entityType: "note", entityId: id },
+    });
+    if (parsed.data.tagIds.length > 0) {
+      await db.taggable.createMany({
+        data: parsed.data.tagIds.map((tagId) => ({
+          tagId,
+          entityType: "note",
+          entityId: id,
+        })),
       });
     }
   }
