@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-guard";
 import { success, badRequest, notFound, unauthorized } from "@/lib/api-response";
 import { extractPlainText, extractWikiLinks } from "@/lib/tiptap-utils";
+import { enqueueAIJob } from "@/lib/queue";
 
 const updateNoteSchema = z.object({
   title: z.string().optional(),
@@ -97,6 +98,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
           context: "",
         })),
         skipDuplicates: true,
+      });
+    }
+
+    const updatedPlain = data.contentPlain as string ?? existing.contentPlain;
+    if (updatedPlain.length > 0) {
+      await enqueueAIJob(user.id!, "note", id, "embed", {
+        text: `${parsed.data.title ?? existing.title}\n${updatedPlain}`,
+        is_sensitive: parsed.data.isSensitive ?? existing.isSensitive,
       });
     }
   }

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-guard";
 import { success, badRequest, unauthorized } from "@/lib/api-response";
 import { extractPlainText } from "@/lib/tiptap-utils";
+import { enqueueAIJob } from "@/lib/queue";
 
 const createNoteSchema = z.object({
   title: z.string().default(""),
@@ -103,6 +104,13 @@ export async function POST(req: NextRequest) {
         entityType: "note",
         entityId: note.id,
       })),
+    });
+  }
+
+  if (contentPlain.length > 0) {
+    await enqueueAIJob(user.id!, "note", note.id, "embed", {
+      text: `${title}\n${contentPlain}`,
+      is_sensitive: isSensitive,
     });
   }
 
