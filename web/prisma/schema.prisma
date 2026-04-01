@@ -1,0 +1,140 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector"), pg_trgm]
+}
+
+model User {
+  id           String         @id @default(uuid()) @db.Uuid
+  email        String         @unique
+  passwordHash String         @map("password_hash")
+  avatarUrl    String?        @map("avatar_url")
+  settings     Json           @default("{}")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz()
+  notes        Note[]
+  journalEntries JournalEntry[]
+  tags         Tag[]
+  aiJobLogs    AIJobLog[]
+
+  @@map("users")
+}
+
+model Note {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  title        String    @default("")
+  content      Json      @default("{}")
+  contentPlain String    @default("") @map("content_plain")
+  parentId     String?   @map("parent_id") @db.Uuid
+  isSensitive  Boolean   @default(false) @map("is_sensitive")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  user         User      @relation(fields: [userId], references: [id])
+  parent       Note?     @relation("NoteHierarchy", fields: [parentId], references: [id])
+  children     Note[]    @relation("NoteHierarchy")
+  outgoingLinks NoteLink[] @relation("NoteLinksSource")
+  incomingLinks NoteLink[] @relation("NoteLinksTarget")
+  taggables    Taggable[]
+
+  @@index([userId, deletedAt])
+  @@index([parentId])
+  @@map("notes")
+}
+
+model NoteLink {
+  sourceId String @map("source_id") @db.Uuid
+  targetId String @map("target_id") @db.Uuid
+  context  String @default("")
+
+  source   Note   @relation("NoteLinksSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target   Note   @relation("NoteLinksTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, targetId])
+  @@map("note_links")
+}
+
+model JournalEntry {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  date         DateTime  @db.Date
+  content      Json      @default("{}")
+  contentPlain String    @default("") @map("content_plain")
+  mood         Int?      @db.SmallInt
+  energy       Int?      @db.SmallInt
+  isSensitive  Boolean   @default(true) @map("is_sensitive")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  user         User      @relation(fields: [userId], references: [id])
+  taggables    Taggable[]
+
+  @@unique([userId, date])
+  @@index([userId, deletedAt])
+  @@map("journal_entries")
+}
+
+model Tag {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  name      String
+  color     String     @default("#6366f1")
+  user      User       @relation(fields: [userId], references: [id])
+  taggables Taggable[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model Taggable {
+  tagId      String @map("tag_id") @db.Uuid
+  entityType String @map("entity_type")
+  entityId   String @map("entity_id") @db.Uuid
+
+  tag        Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  note       Note?  @relation(fields: [entityId], references: [id], map: "taggable_note_fk")
+  journalEntry JournalEntry? @relation(fields: [entityId], references: [id], map: "taggable_journal_fk")
+
+  @@id([tagId, entityType, entityId])
+  @@index([entityType, entityId])
+  @@map("taggables")
+}
+
+model EmbeddingChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  chunkIndex Int      @map("chunk_index") @db.SmallInt
+  chunkText  String   @map("chunk_text")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([entityType, entityId])
+  @@map("embedding_chunks")
+}
+
+model AIJobLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  entityType  String    @map("entity_type")
+  entityId    String    @map("entity_id") @db.Uuid
+  jobType     String    @map("job_type")
+  status      String    @default("queued")
+  routedTo    String?   @map("routed_to")
+  result      Json?
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  completedAt DateTime? @map("completed_at") @db.Timestamptz()
+
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([status])
+  @@map("ai_job_logs")
+}
