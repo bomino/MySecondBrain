@@ -3,11 +3,13 @@
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Trash2, Lock, Unlock, Tag as TagIcon, X } from "lucide-react";
+import { ChevronRight, Trash2, Lock, Unlock, Tag as TagIcon, X, Pin, PinOff, Download } from "lucide-react";
 import { useNote, useUpdateNote, useDeleteNote } from "@/hooks/use-notes";
+import { tiptapToMarkdown } from "@/lib/tiptap-export";
 import { useTags } from "@/hooks/use-tags";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { BacklinksPanel } from "@/components/notes/backlinks-panel";
 
 export default function NoteEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +99,16 @@ export default function NoteEditorPage() {
           {note.isSensitive ? "Sensitive" : "Public"}
         </button>
 
+        <button
+          onClick={() => updateNote.mutate({ id, isPinned: !note.isPinned })}
+          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs btn-surface"
+          title={note.isPinned ? "Unpin note" : "Pin note"}
+          aria-label={note.isPinned ? "Unpin note" : "Pin note"}
+        >
+          {note.isPinned ? <PinOff size={13} style={{ color: "var(--accent)" }} /> : <Pin size={13} />}
+          {note.isPinned ? "Pinned" : "Pin"}
+        </button>
+
         <div className="relative">
           <button
             onClick={() => setShowTagPicker(!showTagPicker)}
@@ -136,6 +148,23 @@ export default function NoteEditorPage() {
         </div>
 
         <button
+          onClick={() => {
+            const md = tiptapToMarkdown(note.content as Parameters<typeof tiptapToMarkdown>[0]);
+            const blob = new Blob([md], { type: "text/markdown" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${note.title || "untitled"}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs btn-surface"
+          aria-label="Export as markdown"
+        >
+          <Download size={13} /> Export
+        </button>
+
+        <button
           onClick={() => setShowDelete(true)}
           className="ml-auto flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs btn-surface"
           style={{ color: "var(--destructive)" }}
@@ -161,6 +190,8 @@ export default function NoteEditorPage() {
         placeholder="Start writing..."
         saveStatus={saveStatus}
       />
+
+      <BacklinksPanel noteId={id} />
 
       <ConfirmDialog
         open={showDelete}
