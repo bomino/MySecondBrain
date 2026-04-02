@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, List, Globe, ArrowUpDown } from "lucide-react";
+import Link from "next/link";
+import { Plus, List, Globe, ArrowUpDown, Upload } from "lucide-react";
 import { useNotes, useCreateNote } from "@/hooks/use-notes";
 import { NoteList } from "@/components/notes/note-list";
 import { NoteGraph } from "@/components/notes/note-graph";
@@ -10,7 +11,7 @@ import { NoteListSkeleton } from "@/components/ui/skeleton";
 
 export default function NotesPage() {
   const router = useRouter();
-  const { data, isLoading } = useNotes();
+  const { data, isLoading } = useNotes({ sort });
   const createNote = useCreateNote();
   const [view, setView] = useState<"list" | "graph">("list");
   const [sort, setSort] = useState<"recent" | "title" | "created">("recent");
@@ -49,6 +50,9 @@ export default function NotesPage() {
           >
             <Globe size={14} /> Graph
           </button>
+          <Link href="/import" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs btn-surface">
+            <Upload size={14} /> Import
+          </Link>
           <button onClick={handleCreate} className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[13px] btn-accent">
             <Plus size={14} /> New Note
           </button>

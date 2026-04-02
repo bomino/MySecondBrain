@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Lock, Flame, BookOpen } from "lucide-react";
 import { useJournalEntries, useJournalStreaks } from "@/hooks/use-journal";
 import { NoteListSkeleton } from "@/components/ui/skeleton";
+import { CalendarHeatmap } from "@/components/journal/calendar-heatmap";
 
 export default function JournalPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -29,6 +30,11 @@ export default function JournalPage() {
           Today
         </Link>
       </div>
+      {data?.data && (
+        <div className="mb-6">
+          <CalendarHeatmap dates={data.data.map((e) => e.date)} />
+        </div>
+      )}
       {isLoading ? (
         <NoteListSkeleton count={3} />
       ) : data?.data && data.data.length === 0 ? (
