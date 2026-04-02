@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 import { SearchResults } from "@/components/search/search-results";
+import { NoteListSkeleton } from "@/components/ui/skeleton";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
@@ -44,8 +45,19 @@ export default function SearchPage() {
         ))}
       </div>
 
-      {isLoading && <p style={{ color: "var(--text-muted)" }}>Searching...</p>}
+      {isLoading && query.length >= 2 && <NoteListSkeleton count={3} />}
       {data && <SearchResults results={data.data} />}
+      {data && data.data.length === 0 && query.length >= 2 && (
+        <div className="flex flex-col items-center justify-center py-16 fade-in">
+          <SearchIcon size={40} style={{ color: "var(--text-faint)", opacity: 0.3 }} />
+          <p className="mt-3 text-sm" style={{ color: "var(--text-muted)" }}>
+            No results for "{query}"
+          </p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
+            Try a different search term or mode
+          </p>
+        </div>
+      )}
     </div>
   );
 }

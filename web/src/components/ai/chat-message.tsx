@@ -8,7 +8,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ role, content, sources }: ChatMessageProps) {
   return (
-    <div className={`mb-4 ${role === "user" ? "flex justify-end" : ""}`}>
+    <div className={`mb-4 fade-in ${role === "user" ? "flex justify-end" : ""}`}>
       <div
         className="inline-block max-w-[80%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed"
         style={

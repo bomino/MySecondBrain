@@ -16,7 +16,7 @@ export function SearchResults({ results }: { results: SearchResult[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 fade-in">
+    <div className="flex flex-col gap-2 stagger-in">
       {results.map((r) => {
         const href = r.type === "note" ? `/notes/${r.id}` : `/journal/${r.title}`;
         return (

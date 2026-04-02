@@ -30,6 +30,30 @@ export function ChatPanel() {
             <p className="mt-3 text-sm" style={{ color: "var(--text-muted)" }}>
               Ask anything about your notes and journal.
             </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {[
+                "What did I write about recently?",
+                "Summarize my last journal entry",
+                "Find notes about work",
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => {
+                    setInput(suggestion);
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-xs transition-colors duration-150"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--border-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((msg, i) => (
