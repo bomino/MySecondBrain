@@ -17,18 +17,19 @@ interface MoodPickerProps {
 export function MoodPicker({ label, value, onChange }: MoodPickerProps) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-gray-500">{label}:</span>
+      <span className="text-xs" style={{ color: "var(--text-muted)" }}>{label}:</span>
       <div className="flex gap-1">
         {MOODS.map((mood) => (
           <button
             key={mood.value}
             type="button"
             onClick={() => onChange(value === mood.value ? null : mood.value)}
-            className={`rounded px-2 py-1 text-xs ${
-              value === mood.value
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
-            }`}
+            className="rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150"
+            style={{
+              backgroundColor: value === mood.value ? "var(--accent)" : "var(--surface)",
+              color: value === mood.value ? "white" : "var(--text-secondary)",
+              border: `1px solid ${value === mood.value ? "var(--accent)" : "var(--border)"}`,
+            }}
             title={mood.label}
           >
             {mood.value}
