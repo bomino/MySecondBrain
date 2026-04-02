@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Tag as TagIcon, Cpu, Eye, EyeOff, Zap, Globe, Server } from "lucide-react";
+import { Plus, Trash2, Tag as TagIcon, Cpu, Eye, EyeOff, Zap, Globe, Server, AlertTriangle, Loader2 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useTags, useCreateTag, useDeleteTag } from "@/hooks/use-tags";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { ColorPicker } from "@/components/tags/color-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUIStore } from "@/stores/ui-store";
+import { toast } from "@/stores/toast-store";
 
 export default function SettingsPage() {
   const { data: tags, isLoading } = useTags();
@@ -44,6 +46,10 @@ export default function SettingsPage() {
   const [profileForm, setProfileForm] = useState({ email: "", currentPassword: "", newPassword: "" });
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
+
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   if (!profileLoaded && profile) {
     setProfileForm((f) => ({ ...f, email: profile.email }));
@@ -439,6 +445,107 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-base font-semibold" style={{ color: "var(--destructive)" }}>
+          <AlertTriangle size={16} className="mr-2 inline" />
+          Danger Zone
+        </h2>
+        <div
+          className="rounded-[10px] p-5"
+          style={{ border: "1px solid rgba(239, 68, 68, 0.3)", backgroundColor: "rgba(239, 68, 68, 0.05)" }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Delete account</h3>
+              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                Permanently delete your account and all data. This cannot be undone.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowDeleteAccount(true)}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white"
+              style={{ backgroundColor: "var(--destructive)" }}
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
+
+        {showDeleteAccount && (
+          <div
+            className="fixed inset-0 z-[90] flex items-center justify-center dialog-overlay"
+            onClick={() => setShowDeleteAccount(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-xl p-6 dialog-content"
+              style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle size={20} style={{ color: "var(--destructive)" }} />
+                <div>
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Delete your account?
+                  </h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                    This will permanently delete all your notes, journal entries, tags, conversations, and templates. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>
+                  Enter your password to confirm
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded-lg px-3 py-2 text-sm input-base"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => { setShowDeleteAccount(false); setDeletePassword(""); }}
+                  className="rounded-lg px-4 py-2 text-sm btn-surface"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!deletePassword) return;
+                    setDeleting(true);
+                    try {
+                      const res = await fetch("/api/v1/auth/delete-account", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ password: deletePassword }),
+                      });
+                      if (!res.ok) {
+                        const err = await res.json();
+                        toast(err.error || "Failed to delete account", "error");
+                        return;
+                      }
+                      await signOut({ callbackUrl: "/register" });
+                    } catch {
+                      toast("Failed to delete account", "error");
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  disabled={!deletePassword || deleting}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  style={{ backgroundColor: "var(--destructive)" }}
+                >
+                  {deleting ? <Loader2 size={14} className="animate-spin" /> : "Delete Everything"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <ConfirmDialog
