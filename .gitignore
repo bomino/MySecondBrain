@@ -1,6 +1,7 @@
 node_modules/
 .next/
 .env
+web/.env
 *.env.local
 __pycache__/
 *.pyc
@@ -8,3 +9,7 @@ __pycache__/
 dist/
 .turbo/
 coverage/
+test-results/
+playwright-report/
+.superpowers/
+Screenshot.png
