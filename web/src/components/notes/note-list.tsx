@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, FileText } from "lucide-react";
+import { Lock, FileText, Pin } from "lucide-react";
 
 interface NoteListProps {
   notes: {
@@ -9,6 +9,7 @@ interface NoteListProps {
     title: string;
     contentPlain: string;
     isSensitive?: boolean;
+    isPinned?: boolean;
     tags: { id: string; name: string; color: string }[];
     updatedAt: string;
   }[];
@@ -62,6 +63,7 @@ export function NoteList({ notes }: NoteListProps) {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
               {note.isSensitive && <Lock size={12} style={{ color: "var(--destructive)" }} />}
+              {note.isPinned && <Pin size={12} style={{ color: "var(--accent)" }} />}
               {note.title || "Untitled"}
             </div>
             <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>

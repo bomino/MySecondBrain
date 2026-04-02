@@ -6,6 +6,7 @@ interface Note {
   title: string;
   contentPlain: string;
   isSensitive?: boolean;
+  isPinned?: boolean;
   tags: { id: string; name: string; color: string }[];
   createdAt: string;
   updatedAt: string;
@@ -18,13 +19,14 @@ interface NoteDetail extends Note {
   children: { id: string; title: string }[];
 }
 
-export function useNotes(params?: { parentId?: string; tag?: string }) {
+export function useNotes(params?: { parentId?: string; tag?: string; sort?: string }) {
   return useQuery({
     queryKey: ["notes", params],
     queryFn: async () => {
       const searchParams = new URLSearchParams();
       if (params?.parentId) searchParams.set("parentId", params.parentId);
       if (params?.tag) searchParams.set("tag", params.tag);
+      if (params?.sort) searchParams.set("sort", params.sort);
       const res = await fetch(`/api/v1/notes?${searchParams}`);
       return res.json() as Promise<{ data: Note[]; total: number }>;
     },
@@ -63,7 +65,7 @@ export function useCreateNote() {
 export function useUpdateNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: unknown; parentId?: string | null; isSensitive?: boolean; tagIds?: string[] }) => {
+    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: unknown; parentId?: string | null; isSensitive?: boolean; isPinned?: boolean; tagIds?: string[] }) => {
       const res = await fetch(`/api/v1/notes/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
