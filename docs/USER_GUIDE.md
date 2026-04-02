@@ -19,6 +19,8 @@ A personal knowledge OS for notes, journal, and AI-assisted thinking. This guide
 11. [Mobile and PWA](#11-mobile-and-pwa)
 12. [Troubleshooting](#12-troubleshooting)
 
+**New in recent updates:** [Auto-tag suggestions](#auto-tagging), [Related Notes panel](#related-notes-panel), [AI Writing Assistant](#ai-writing-assistant), [Daily Digest](#daily-digest), [AI status indicator](#ai-status-indicator)
+
 ---
 
 ## 1. Quick Start
@@ -122,6 +124,20 @@ To nest a note under another:
 
 The sidebar shows the tree. Collapse or expand branches by clicking the arrow next to any note that has children.
 
+### Auto-tag suggestions
+
+When you create or save a note, the system queues an AI tagging job in the background. Once it completes (usually within a few minutes), an amber banner appears at the top of the note editor:
+
+> **Suggested tags:** `writing` `productivity` — **Apply** / **Dismiss**
+
+Each tag chip in the banner can be accepted or dismissed individually. Clicking **Apply** on the banner applies all suggestions at once. **Dismiss** clears the banner without adding any tags.
+
+The banner polls every 10 seconds while a suggestion is pending, so it appears automatically without requiring a page refresh.
+
+To review all pending tag suggestions across your entire library, go to **AI > Suggestions** in the sidebar.
+
+Auto-tagging runs via the background job queue (Redis). The result is stored as `pending_review` until you accept or dismiss it. Sensitive notes are tagged using the local Ollama model.
+
 ### Tags
 
 Tags are shared across notes and journal entries. To add a tag to a note:
@@ -141,6 +157,15 @@ Type `[[` anywhere in the editor to open the link picker. Type to filter notes b
 When a wiki-link is saved, the system automatically records both the outbound link (from this note) and the backlink (on the target note). Both sides of the connection are maintained without any manual action.
 
 To view what links to a given note, open the note and scroll below the editor — there is a collapsible **Backlinks** panel that lists every note containing a link to the current one. Click the panel header to expand or collapse it. Click any backlink entry to navigate to that note.
+
+### Related Notes panel
+
+Below the Backlinks panel there is a collapsible **Related Notes** panel with two sections:
+
+- **Semantically Similar** — notes with a high cosine similarity score to the current note's embedding (via pgvector). These are notes whose meaning is close to the current note even if they share no common words or links.
+- **Mentioned in this note** — notes whose titles appear as substrings in the current note's content. This catches informal references that weren't typed as proper `[[wiki-links]]`.
+
+Click the panel header to collapse or expand it. Click any entry to navigate to that note. The panel is populated after the current note has been embedded; if it appears empty on a newly created note, wait a few minutes and reload.
 
 ### Graph view
 
@@ -250,6 +275,29 @@ The palette is the fastest way to navigate and create. See [Keyboard Shortcuts](
 
 ## 5. AI Features
 
+Second Brain has the following AI-powered capabilities:
+
+- **AI Chat** — conversational RAG over your notes and journal
+- **Summarization** — one-click summary of any note or journal entry
+- **Auto-tagging** — tag suggestions generated after each save (see [Auto-tag suggestions](#auto-tag-suggestions) under Notes)
+- **Semantic search** — find content by meaning
+- **Related Notes panel** — semantically similar and title-matched notes (see [Related Notes panel](#related-notes-panel) under Notes)
+- **AI Writing Assistant** — inline text transformation (improve, simplify, expand, summarize)
+- **Daily Digest** — daily relevance briefing at `/digest`
+- **AI Status Indicator** — real-time sidecar health shown in the sidebar
+
+### AI status indicator
+
+A small colored dot appears next to **AI Chat** in the sidebar and reflects the current state of the AI sidecar:
+
+| Color | Meaning |
+|-------|---------|
+| Green | Sidecar is reachable and ready |
+| Amber | Background jobs are actively processing |
+| Red | Sidecar is unavailable |
+
+The dot polls the sidecar every 60 seconds automatically. If the dot is red, AI features (embedding, auto-tagging, related notes, digest, writing assistant) will be unavailable or degraded until the sidecar comes back online.
+
 ### How sensitivity routing works
 
 Every piece of content has an `isSensitive` flag. Before any AI operation, the API checks this flag and routes accordingly:
@@ -311,13 +359,49 @@ Summarization works on notes and journal entries (`note` and `journal_entry` typ
 When you save a note or journal entry, the system asynchronously:
 
 1. Generates an embedding for the content
-2. Suggests tags based on the content
+2. Suggests tags based on the content, stored as `pending_review`
 
-Tag suggestions appear as chips in the note header with an **Accept** / **Dismiss** action on each. You can also accept all suggestions at once.
+The suggestions appear as an amber banner at the top of the note editor (see [Auto-tag suggestions](#auto-tag-suggestions) in the Notes section for the full interaction details). The banner polls every 10 seconds, so it appears without a page reload.
 
-Auto-tagging runs via the background job queue (Redis). On a busy machine it may take a few minutes after saving before suggestions appear. If Ollama is not running, auto-tagging for sensitive items queues until Ollama is available.
+Auto-tagging runs via the background job queue (Redis). If Ollama is not running, auto-tagging for sensitive items queues until Ollama is available.
 
-To review all pending tag suggestions across all content, go to **AI** > **Suggestions** in the sidebar.
+To review all pending tag suggestions across all content, go to **AI > Suggestions** in the sidebar.
+
+### AI Writing Assistant
+
+The writing assistant lets you transform selected text in the note editor without leaving the page.
+
+To use it:
+1. Select any text in the Tiptap editor.
+2. A floating **BubbleMenu** toolbar appears above the selection with four action buttons:
+   - **Improve** — rewrites for clarity and flow
+   - **Simplify** — shortens and removes jargon
+   - **Expand** — adds detail and elaboration
+   - **Summarize** — condenses to the key point
+3. Click any action. The selected text is replaced with the AI result.
+
+The transformation is sent to the AI sidecar's `/transform` endpoint. Routing follows the note's sensitivity flag — sensitive notes use the local Ollama model. The action is undoable with `Ctrl+Z` / `Cmd+Z` if you don't like the result.
+
+### Daily Digest
+
+The Daily Digest page is at `/digest`. Open it from the **Lightbulb** icon in the sidebar (between AI Chat and Today).
+
+The digest runs four heuristics each time you visit:
+
+| Section | What it shows |
+|---------|--------------|
+| **Forgotten Relevance** | Notes not viewed in 30+ days that are semantically similar to content you've worked with recently |
+| **On This Day** | Journal entries written on this same calendar date in prior years |
+| **Orphan Detection** | Notes that have no tags and no incoming or outgoing links, and are older than 14 days |
+| **Cluster Alerts** | Groups of 3 or more recently created notes that cluster semantically but aren't linked to each other |
+
+Each section is independently useful:
+- **Forgotten Relevance** surfaces knowledge you've accumulated but stopped visiting.
+- **On This Day** adds a reflective, longitudinal dimension to daily journaling.
+- **Orphan Detection** identifies notes that have fallen through organizational cracks.
+- **Cluster Alerts** suggests where you might want to add links or create a summary note.
+
+The digest is generated fresh on each page visit. It may take a few seconds to load while the sidecar processes the heuristics.
 
 ### Embeddings and the AI index
 
@@ -616,6 +700,10 @@ Tags can also be created inline from the note or journal entry header — type a
 ### Theme
 
 A **Dark / Light / System** toggle is in the sidebar (bottom of the navigation). **System** follows your OS appearance setting.
+
+### Logging out
+
+The **Log Out** button (LogOut icon) is in the sidebar user section at the bottom. Clicking it ends your session and redirects you to `/login`. There is no confirmation dialog — the logout is immediate.
 
 ---
 

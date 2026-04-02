@@ -9,6 +9,9 @@ A personal knowledge OS — notes, journal, and AI-powered thinking, all in one 
 - **AI Chat** — ask questions about your notes and journal (RAG with source citations)
 - **Semantic Search** — find content by meaning, not just keywords
 - **Auto-tagging & Summarization** — AI-powered content organization
+- **AI Writing Assistant** — select text, transform it inline (improve, simplify, expand, summarize)
+- **Daily Digest** — daily relevance briefing: forgotten notes, on-this-day, orphans, clusters
+- **Related Notes** — semantically similar and title-matched notes shown per note
 - **Sensitivity-aware** — sensitive data stays local (Ollama), non-sensitive uses cloud AI (Claude)
 
 ## Quick Start
@@ -44,11 +47,15 @@ Register an account at `/register`, then start creating notes.
 - Full-text search (PostgreSQL tsvector) + semantic search (pgvector)
 - Combined search mode (best of both)
 
-### AI
+### AI Intelligence
 - Chat with your knowledge base — answers sourced from your notes with citations
-- Auto-tagging suggestions
-- Content summarization
-- Sensitivity routing — `is_sensitive` flag controls local vs cloud AI processing
+- Auto-tagging suggestions — amber banner appears after save, accept or dismiss per tag
+- Content summarization — one-click sparkle icon on any note or journal entry
+- **AI Writing Assistant** — select text in editor → floating menu → Improve / Simplify / Expand / Summarize; replaces selection with result
+- **Daily Digest** (`/digest`) — four heuristics: Forgotten Relevance (30+ day old notes similar to recent work), On This Day (journal entries from same date in prior years), Orphan Detection (untagged+unlinked notes >14 days old), Cluster Alerts (3+ recent notes that semantically cluster but aren't linked)
+- **Related Notes panel** — per-note panel with Semantically Similar (pgvector cosine) and Mentioned in this note (title substring match) sections
+- **AI Status Indicator** — colored dot next to AI Chat in sidebar: green (ready), amber (processing), red (unavailable)
+- Sensitivity routing — `is_sensitive` flag controls local (Ollama) vs cloud (Claude) AI processing
 - Chunked embeddings (500 tokens, 50 overlap) for precise retrieval
 
 ### Organization
@@ -68,6 +75,9 @@ Register an account at `/register`, then start creating notes.
 - Command palette (`Ctrl+K` / `Cmd+K`)
 - Keyboard shortcuts (`N` notes, `J` journal, `/` search, `?` help)
 - Dark/Light/System theme toggle
+- Local timezone formatting for all dates and times
+- Custom Agadez cross logo in sidebar, login/register pages, favicon, and PWA manifest
+- Logout button in sidebar user section
 - Mobile responsive (hamburger menu + bottom nav)
 - PWA installable
 - Toast notifications on all actions
