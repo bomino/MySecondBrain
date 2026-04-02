@@ -30,6 +30,7 @@ export function MoodPicker({ label, value, onChange }: MoodPickerProps) {
               color: value === mood.value ? "white" : "var(--text-secondary)",
               border: `1px solid ${value === mood.value ? "var(--accent)" : "var(--border)"}`,
             }}
+            aria-label={`${label}: ${mood.label}`}
             title={mood.label}
           >
             {mood.value}

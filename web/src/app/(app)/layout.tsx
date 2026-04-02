@@ -1,23 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { Sidebar } from "@/components/layout/sidebar";
-import { CommandPalette } from "@/components/layout/command-palette";
+import { AppShell } from "@/components/layout/app-shell";
 
-export default async function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login");
   }
 
-  return (
-    <div className="flex h-screen" style={{ backgroundColor: "var(--background)" }}>
-      <Sidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
-      <CommandPalette />
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

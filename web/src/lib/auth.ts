@@ -4,6 +4,7 @@ import { compare } from "bcryptjs";
 import { db } from "./db";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  basePath: "/api/v1/auth",
   providers: [
     Credentials({
       credentials: {

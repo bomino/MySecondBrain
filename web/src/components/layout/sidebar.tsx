@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BookOpen, Search, Sparkles } from "lucide-react";
+import { FileText, BookOpen, Search, Sparkles, Sun, Moon, Monitor } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { sidebarOpen, toggleChatPanel } = useUIStore();
+  const { sidebarOpen, theme, setTheme } = useUIStore();
 
   if (!sidebarOpen) return null;
 
@@ -39,6 +39,7 @@ export function Sidebar() {
           }}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs"
           style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-faint)" }}
+          aria-label="Open search (Ctrl+K)"
         >
           <Search size={14} />
           <span>Search...</span>
@@ -49,6 +50,28 @@ export function Sidebar() {
             ⌘K
           </kbd>
         </button>
+      </div>
+
+      <div className="flex items-center gap-1 px-1 pb-3">
+        {[
+          { value: "dark" as const, icon: Moon, label: "Dark" },
+          { value: "light" as const, icon: Sun, label: "Light" },
+          { value: "system" as const, icon: Monitor, label: "System" },
+        ].map(({ value, icon: Icon, label }) => (
+          <button
+            key={value}
+            onClick={() => setTheme(value)}
+            className="flex flex-1 items-center justify-center gap-1 rounded-md py-1 text-[11px] transition-all duration-150"
+            style={{
+              backgroundColor: theme === value ? "var(--accent-muted)" : "transparent",
+              color: theme === value ? "var(--accent-light)" : "var(--text-faint)",
+            }}
+            aria-label={`Switch to ${label} theme`}
+          >
+            <Icon size={12} />
+            <span>{label}</span>
+          </button>
+        ))}
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3">

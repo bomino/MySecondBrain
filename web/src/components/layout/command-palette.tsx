@@ -37,6 +37,8 @@ export function CommandPalette() {
 
   return (
     <div
+      role="dialog"
+      aria-label="Search"
       className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
       style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
@@ -57,10 +59,12 @@ export function CommandPalette() {
             style={{ color: "var(--text-primary)" }}
           />
         </div>
-        <div className="max-h-80 overflow-y-auto">
+        <div role="listbox" className="max-h-80 overflow-y-auto">
           {(data?.data ?? []).map((r) => (
             <button
               key={`${r.type}-${r.id}`}
+              role="option"
+              aria-selected={false}
               onClick={() => handleSelect(r)}
               className="w-full px-4 py-2.5 text-left transition-colors duration-100"
               style={{ color: "var(--text-primary)" }}

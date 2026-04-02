@@ -23,7 +23,7 @@ export function ChatPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto p-6">
+      <div role="log" aria-live="polite" className="flex-1 overflow-y-auto p-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20">
             <Sparkles size={32} style={{ color: "var(--accent)", opacity: 0.4 }} />
@@ -85,6 +85,7 @@ export function ChatPanel() {
         <button
           type="submit"
           disabled={isLoading}
+          aria-label="Send message"
           className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] btn-accent disabled:opacity-50"
         >
           <Send size={16} />
