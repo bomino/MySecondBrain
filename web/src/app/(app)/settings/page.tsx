@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Tag as TagIcon } from "lucide-react";
+import { Plus, Trash2, Tag as TagIcon, Cpu, Eye, EyeOff, Zap, Globe, Server } from "lucide-react";
 import { useTags, useCreateTag, useDeleteTag } from "@/hooks/use-tags";
+import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import { ColorPicker } from "@/components/tags/color-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -13,6 +14,31 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("#d97706");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { data: aiSettings } = useSettings();
+  const updateSettings = useUpdateSettings();
+  const [aiForm, setAiForm] = useState({
+    aiRoutingMode: "",
+    anthropicApiKey: "",
+    ollamaBaseUrl: "",
+    chatModelCloud: "",
+    chatModelLocal: "",
+    embeddingModel: "",
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [aiLoaded, setAiLoaded] = useState(false);
+
+  if (!aiLoaded && aiSettings) {
+    setAiForm({
+      aiRoutingMode: aiSettings.aiRoutingMode,
+      anthropicApiKey: "",
+      ollamaBaseUrl: aiSettings.ollamaBaseUrl,
+      chatModelCloud: aiSettings.chatModelCloud,
+      chatModelLocal: aiSettings.chatModelLocal,
+      embeddingModel: aiSettings.embeddingModel,
+    });
+    setAiLoaded(true);
+  }
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -79,6 +105,142 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+          <Cpu size={16} className="mr-2 inline" />
+          AI Configuration
+        </h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-xs" style={{ color: "var(--text-muted)" }}>Routing Mode</label>
+            <div className="flex gap-1">
+              {[
+                { value: "hybrid", label: "Hybrid", icon: Zap, desc: "Sensitive → local, others → cloud" },
+                { value: "local", label: "Local", icon: Server, desc: "Everything via Ollama" },
+                { value: "cloud", label: "Cloud", icon: Globe, desc: "Everything via Claude API" },
+              ].map(({ value, label, icon: Icon, desc }) => (
+                <button
+                  key={value}
+                  onClick={() => setAiForm((f) => ({ ...f, aiRoutingMode: value }))}
+                  className="flex flex-1 flex-col items-center gap-1 rounded-lg p-3 text-xs transition-all duration-150"
+                  style={{
+                    backgroundColor: aiForm.aiRoutingMode === value ? "var(--accent-muted)" : "var(--surface)",
+                    color: aiForm.aiRoutingMode === value ? "var(--accent-light)" : "var(--text-secondary)",
+                    border: `1px solid ${aiForm.aiRoutingMode === value ? "rgba(217,119,6,0.3)" : "var(--border)"}`,
+                  }}
+                >
+                  <Icon size={16} />
+                  <span className="font-medium">{label}</span>
+                  <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>
+              Anthropic API Key{" "}
+              {aiSettings?.hasEnvApiKey && !aiSettings?.hasApiKeyOverride && (
+                <span style={{ color: "var(--text-faint)" }}>(from .env)</span>
+              )}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type={showApiKey ? "text" : "password"}
+                value={aiForm.anthropicApiKey}
+                onChange={(e) => setAiForm((f) => ({ ...f, anthropicApiKey: e.target.value }))}
+                placeholder={aiSettings?.anthropicApiKey || "sk-ant-..."}
+                className="flex-1 rounded-lg px-3 py-2 text-sm input-base"
+              />
+              <button
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="rounded-lg px-2 btn-surface"
+                aria-label={showApiKey ? "Hide API key" : "Show API key"}
+              >
+                {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Ollama URL</label>
+            <input
+              type="text"
+              value={aiForm.ollamaBaseUrl}
+              onChange={(e) => setAiForm((f) => ({ ...f, ollamaBaseUrl: e.target.value }))}
+              placeholder="http://localhost:11434"
+              className="w-full rounded-lg px-3 py-2 text-sm input-base"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Cloud Model</label>
+              <input
+                type="text"
+                value={aiForm.chatModelCloud}
+                onChange={(e) => setAiForm((f) => ({ ...f, chatModelCloud: e.target.value }))}
+                className="w-full rounded-lg px-3 py-2 text-sm input-base"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Local Model</label>
+              <input
+                type="text"
+                value={aiForm.chatModelLocal}
+                onChange={(e) => setAiForm((f) => ({ ...f, chatModelLocal: e.target.value }))}
+                className="w-full rounded-lg px-3 py-2 text-sm input-base"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Embedding Model</label>
+              <input
+                type="text"
+                value={aiForm.embeddingModel}
+                onChange={(e) => setAiForm((f) => ({ ...f, embeddingModel: e.target.value }))}
+                className="w-full rounded-lg px-3 py-2 text-sm input-base"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                const data: Record<string, string | undefined> = {};
+                if (aiForm.aiRoutingMode) data.aiRoutingMode = aiForm.aiRoutingMode;
+                if (aiForm.anthropicApiKey) data.anthropicApiKey = aiForm.anthropicApiKey;
+                if (aiForm.ollamaBaseUrl) data.ollamaBaseUrl = aiForm.ollamaBaseUrl;
+                if (aiForm.chatModelCloud) data.chatModelCloud = aiForm.chatModelCloud;
+                if (aiForm.chatModelLocal) data.chatModelLocal = aiForm.chatModelLocal;
+                if (aiForm.embeddingModel) data.embeddingModel = aiForm.embeddingModel;
+                updateSettings.mutate(data);
+              }}
+              className="rounded-lg px-6 py-2 text-sm btn-accent"
+            >
+              Save AI Settings
+            </button>
+            <button
+              onClick={() => {
+                updateSettings.mutate({
+                  aiRoutingMode: "",
+                  anthropicApiKey: "",
+                  ollamaBaseUrl: "",
+                  chatModelCloud: "",
+                  chatModelLocal: "",
+                  embeddingModel: "",
+                });
+                setAiLoaded(false);
+              }}
+              className="text-xs"
+              style={{ color: "var(--text-faint)" }}
+            >
+              Reset to defaults
+            </button>
+          </div>
+        </div>
       </section>
 
       <ConfirmDialog
