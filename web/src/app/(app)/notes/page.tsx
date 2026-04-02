@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, List, Globe } from "lucide-react";
 import { useNotes, useCreateNote } from "@/hooks/use-notes";
 import { NoteList } from "@/components/notes/note-list";
 import { NoteGraph } from "@/components/notes/note-graph";
@@ -18,36 +19,37 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl p-8 fade-in">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Notes</h1>
+        <div>
+          <h1 className="text-[22px] font-semibold" style={{ color: "var(--text-primary)" }}>Notes</h1>
+          <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-faint)" }}>
+            {data?.total ?? 0} notes
+          </p>
+        </div>
         <div className="flex items-center gap-2">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setView("list")}
-              className={`rounded px-3 py-1 text-sm ${view === "list" ? "bg-gray-200 dark:bg-gray-700" : ""}`}
-            >
-              List
-            </button>
-            <button
-              onClick={() => setView("graph")}
-              className={`rounded px-3 py-1 text-sm ${view === "graph" ? "bg-gray-200 dark:bg-gray-700" : ""}`}
-            >
-              Graph
-            </button>
-          </div>
           <button
-            onClick={handleCreate}
-            className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+            onClick={() => setView("list")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs btn-surface ${view === "list" ? "!border-[var(--border-hover)]" : ""}`}
           >
-            New Note
+            <List size={14} /> List
+          </button>
+          <button
+            onClick={() => setView("graph")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs btn-surface ${view === "graph" ? "!border-[var(--border-hover)]" : ""}`}
+          >
+            <Globe size={14} /> Graph
+          </button>
+          <button onClick={handleCreate} className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[13px] btn-accent">
+            <Plus size={14} /> New Note
           </button>
         </div>
       </div>
-      {view === "graph" ? (
+
+      {isLoading ? (
+        <p style={{ color: "var(--text-muted)" }}>Loading...</p>
+      ) : view === "graph" ? (
         <NoteGraph />
-      ) : isLoading ? (
-        <p className="text-gray-500">Loading...</p>
       ) : (
         <NoteList notes={data?.data ?? []} />
       )}
