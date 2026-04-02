@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
+import { ToastContainer } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Second Brain",
   description: "Your personal knowledge OS",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>",
+  },
+  other: {
+    "theme-color": "#0a0a0a",
+  },
 };
 
 export default function RootLayout({
@@ -15,7 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <ToastContainer />
+        </Providers>
       </body>
     </html>
   );
