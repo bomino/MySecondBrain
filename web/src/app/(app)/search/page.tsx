@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Search as SearchIcon } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 import { SearchResults } from "@/components/search/search-results";
 
@@ -9,28 +10,41 @@ export default function SearchPage() {
   const [mode, setMode] = useState("combined");
   const { data, isLoading } = useSearch(query, mode);
 
+  const modes = ["combined", "fulltext", "semantic"] as const;
+
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-6 text-2xl font-bold">Search</h1>
-      <div className="mb-4 flex gap-2">
+    <div className="mx-auto max-w-3xl p-8 fade-in">
+      <h1 className="mb-6 text-[22px] font-semibold" style={{ color: "var(--text-primary)" }}>Search</h1>
+
+      <div className="mb-4 flex items-center gap-2 rounded-[10px] px-3 py-2.5 input-base">
+        <SearchIcon size={16} style={{ color: "var(--text-faint)" }} />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search your knowledge base..."
-          className="flex-1 rounded border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="flex-1 bg-transparent text-sm focus:outline-none"
+          style={{ color: "var(--text-primary)" }}
         />
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value)}
-          className="rounded border px-3 py-2"
-        >
-          <option value="combined">Combined</option>
-          <option value="fulltext">Full-text</option>
-          <option value="semantic">Semantic</option>
-        </select>
       </div>
-      {isLoading && <p className="text-gray-500">Searching...</p>}
+
+      <div className="mb-6 flex gap-1">
+        {modes.map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150"
+            style={{
+              backgroundColor: mode === m ? "var(--accent-muted)" : "transparent",
+              color: mode === m ? "var(--accent-light)" : "var(--text-muted)",
+            }}
+          >
+            {m.charAt(0).toUpperCase() + m.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {isLoading && <p style={{ color: "var(--text-muted)" }}>Searching...</p>}
       {data && <SearchResults results={data.data} />}
     </div>
   );
