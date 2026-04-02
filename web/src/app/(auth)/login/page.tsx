@@ -35,7 +35,7 @@ export default function LoginPage() {
         style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
       >
         <div className="flex items-center justify-center gap-2 pb-2">
-          <img src="/logo.png" alt="Second Brain" className="h-12 w-12 rounded-lg object-contain" />
+          <img src="/logo.png" alt="Second Brain" className="h-16 w-16 rounded-lg object-contain" />
           <span className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>Second Brain</span>
         </div>
 
