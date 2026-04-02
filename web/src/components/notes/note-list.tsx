@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Lock, FileText, Pin } from "lucide-react";
+import { timeAgo } from "@/lib/date-utils";
 
 interface NoteListProps {
   notes: {
@@ -28,15 +29,6 @@ function getTagClass(color: string): string {
   return TAG_COLORS[color] || "tag-amber";
 }
 
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = Math.floor((now - then) / 1000);
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
 
 export function NoteList({ notes }: NoteListProps) {
   if (notes.length === 0) {

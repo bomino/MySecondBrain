@@ -6,6 +6,7 @@ import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Ca
 import { useUIStore } from "@/stores/ui-store";
 import { useAIStatus } from "@/hooks/use-ai-status";
 import { cn } from "@/lib/utils";
+import { todayLocalStr } from "@/lib/date-utils";
 
 const NAV_ITEMS = [
   { href: "/notes", label: "Notes", icon: FileText },
@@ -121,7 +122,7 @@ export function Sidebar() {
 
       <div className="px-3 pb-2">
         <a
-          href={`/journal/${new Date().toISOString().split("T")[0]}`}
+          href={`/journal/${todayLocalStr()}`}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium nav-item"
           style={{ color: "var(--text-secondary)" }}
         >

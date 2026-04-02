@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Lightbulb, Clock, Calendar, Unlink, Network, RefreshCw } from "lucide-react";
 import { useDigest } from "@/hooks/use-digest";
+import { formatTime, formatDate, toLocalDateStr } from "@/lib/date-utils";
 import { NoteListSkeleton } from "@/components/ui/skeleton";
 
 export default function DigestPage() {
@@ -14,7 +15,7 @@ export default function DigestPage() {
         <div>
           <h1 className="text-[22px] font-semibold" style={{ color: "var(--text-primary)" }}>Daily Digest</h1>
           <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-faint)" }}>
-            {digest ? `Generated ${new Date(digest.generated_at).toLocaleTimeString()}` : "AI-powered insights from your knowledge base"}
+            {digest ? `Generated ${formatTime(digest.generated_at)}` : "AI-powered insights from your knowledge base"}
           </p>
         </div>
         <button onClick={() => refetch()} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs btn-surface">
@@ -31,8 +32,8 @@ export default function DigestPage() {
           {digest.on_this_day.length > 0 && (
             <Section icon={<Calendar size={16} />} title="On This Day" subtitle="Journal entries from this date in prior years">
               {digest.on_this_day.map((entry) => (
-                <Link key={entry.id} href={`/journal/${entry.date.split("T")[0]}`} className="block rounded-lg p-3 card-hover" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{entry.date.split("T")[0]}</span>
+                <Link key={entry.id} href={`/journal/${toLocalDateStr(entry.date)}`} className="block rounded-lg p-3 card-hover" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{toLocalDateStr(entry.date)}</span>
                   <p className="mt-1 text-xs line-clamp-2" style={{ color: "var(--text-muted)" }}>{entry.snippet}</p>
                 </Link>
               ))}
@@ -55,7 +56,7 @@ export default function DigestPage() {
               {digest.orphans.map((note) => (
                 <Link key={note.id} href={`/notes/${note.id}`} className="block rounded-lg p-3 card-hover" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
                   <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{note.title}</span>
-                  <span className="ml-2 text-[10px]" style={{ color: "var(--text-faint)" }}>Created {new Date(note.created_at).toLocaleDateString()}</span>
+                  <span className="ml-2 text-[10px]" style={{ color: "var(--text-faint)" }}>Created {formatDate(note.created_at)}</span>
                 </Link>
               ))}
             </Section>

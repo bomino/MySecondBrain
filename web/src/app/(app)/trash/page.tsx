@@ -2,6 +2,7 @@
 
 import { Trash2, RotateCcw } from "lucide-react";
 import { useTrash, useRestoreNote, useRestoreJournalEntry } from "@/hooks/use-trash";
+import { formatDate } from "@/lib/date-utils";
 
 export default function TrashPage() {
   const { data, isLoading } = useTrash();
@@ -50,7 +51,7 @@ export default function TrashPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
-                  Deleted {new Date(item.deletedAt).toLocaleDateString()}
+                  Deleted {formatDate(item.deletedAt)}
                 </p>
               </div>
               <button

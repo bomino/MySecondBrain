@@ -5,9 +5,10 @@ import { Lock, Flame, BookOpen } from "lucide-react";
 import { useJournalEntries, useJournalStreaks } from "@/hooks/use-journal";
 import { NoteListSkeleton } from "@/components/ui/skeleton";
 import { CalendarHeatmap } from "@/components/journal/calendar-heatmap";
+import { todayLocalStr, toLocalDateStr } from "@/lib/date-utils";
 
 export default function JournalPage() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayLocalStr();
   const { data, isLoading } = useJournalEntries();
   const { data: streaks } = useJournalStreaks();
 
@@ -48,14 +49,14 @@ export default function JournalPage() {
           {(data?.data ?? []).map((entry) => (
             <Link
               key={entry.id}
-              href={`/journal/${entry.date.split("T")[0]}`}
+              href={`/journal/${toLocalDateStr(entry.date)}`}
               className="block rounded-[10px] p-4 card-hover"
               style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                    {entry.date.split("T")[0]}
+                    {toLocalDateStr(entry.date)}
                   </span>
                   <Lock size={12} style={{ color: "var(--destructive)", opacity: 0.6 }} />
                 </div>

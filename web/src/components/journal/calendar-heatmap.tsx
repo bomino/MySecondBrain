@@ -1,11 +1,17 @@
 "use client";
 
+import { toLocalDateStr } from "@/lib/date-utils";
+
 interface CalendarHeatmapProps {
   dates: string[];
 }
 
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function CalendarHeatmap({ dates }: CalendarHeatmapProps) {
-  const dateSet = new Set(dates.map((d) => d.split("T")[0]));
+  const dateSet = new Set(dates.map((d) => toLocalDateStr(d)));
   const weeks = buildWeeks();
 
   return (
@@ -42,7 +48,7 @@ function buildWeeks(): string[][] {
   let week: string[] = [];
 
   while (current <= today) {
-    week.push(current.toISOString().split("T")[0]);
+    week.push(localDateStr(current));
     if (week.length === 7) {
       weeks.push(week);
       week = [];
