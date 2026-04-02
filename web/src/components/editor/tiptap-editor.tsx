@@ -5,17 +5,22 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
-import { useEffect } from "react";
-import { Bold, Italic, Heading1, Heading2, List as ListIcon, Code } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bold, Italic, Heading1, Heading2, List as ListIcon, Code, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const lowlight = createLowlight(common);
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 interface TiptapEditorProps {
   content: Record<string, unknown>;
   onUpdate: (content: Record<string, unknown>) => void;
   placeholder?: string;
   editable?: boolean;
+  saveStatus?: "idle" | "saving" | "saved";
 }
 
 export function TiptapEditor({
@@ -23,7 +28,10 @@ export function TiptapEditor({
   onUpdate,
   placeholder = "Start writing...",
   editable = true,
+  saveStatus,
 }: TiptapEditorProps) {
+  const [wordCount, setWordCount] = useState(0);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
@@ -34,6 +42,7 @@ export function TiptapEditor({
     editable,
     onUpdate: ({ editor }) => {
       onUpdate(editor.getJSON());
+      setWordCount(countWords(editor.getText()));
     },
     editorProps: {
       attributes: {
@@ -48,6 +57,7 @@ export function TiptapEditor({
       const newJSON = JSON.stringify(content);
       if (currentJSON !== newJSON) {
         editor.commands.setContent(content);
+        setWordCount(countWords(editor.getText()));
       }
     }
   }, [content, editor]);
@@ -66,6 +76,17 @@ export function TiptapEditor({
       </div>
       <div style={{ backgroundColor: "var(--background)" }}>
         <EditorContent editor={editor} />
+      </div>
+      <div className="flex items-center justify-between px-4 py-2 text-xs" style={{ borderTop: "1px solid var(--border)", color: "var(--text-faint)" }}>
+        <span>{wordCount} words</span>
+        <span>
+          {saveStatus === "saving" && "Saving..."}
+          {saveStatus === "saved" && (
+            <span className="flex items-center gap-1" style={{ color: "var(--success)" }}>
+              <Check size={12} /> Saved
+            </span>
+          )}
+        </span>
       </div>
     </div>
   );

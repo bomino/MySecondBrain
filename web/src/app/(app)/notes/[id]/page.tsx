@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Trash2, Lock, Unlock, Tag as TagIcon, X } from "lucide-react";
 import { useNote, useUpdateNote, useDeleteNote } from "@/hooks/use-notes";
@@ -20,6 +20,8 @@ export default function NoteEditorPage() {
   const [titleLoaded, setTitleLoaded] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   if (!titleLoaded && note) {
     setTitle(note.title);
@@ -34,7 +36,16 @@ export default function NoteEditorPage() {
 
   const handleContentUpdate = useCallback(
     (content: Record<string, unknown>) => {
-      updateNote.mutate({ id, content });
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      setSaveStatus("saving");
+      saveTimerRef.current = setTimeout(() => {
+        updateNote.mutate({ id, content }, {
+          onSuccess: () => {
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus("idle"), 2000);
+          },
+        });
+      }, 500);
     },
     [id, updateNote]
   );
@@ -148,6 +159,7 @@ export default function NoteEditorPage() {
         content={note.content as Record<string, unknown>}
         onUpdate={handleContentUpdate}
         placeholder="Start writing..."
+        saveStatus={saveStatus}
       />
 
       <ConfirmDialog

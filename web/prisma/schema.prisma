@@ -20,6 +20,8 @@ model User {
   journalEntries JournalEntry[]
   tags         Tag[]
   aiJobLogs    AIJobLog[]
+  noteTemplates    NoteTemplate[]
+  chatConversations ChatConversation[]
 
   @@map("users")
 }
@@ -32,6 +34,7 @@ model Note {
   contentPlain String    @default("") @map("content_plain")
   parentId     String?   @map("parent_id") @db.Uuid
   isSensitive  Boolean   @default(false) @map("is_sensitive")
+  isPinned     Boolean   @default(false) @map("is_pinned")
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
@@ -137,4 +140,44 @@ model AIJobLog {
   @@index([entityType, entityId])
   @@index([status])
   @@map("ai_job_logs")
+}
+
+model NoteTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  content   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("note_templates")
+}
+
+model ChatConversation {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  title     String        @default("New conversation")
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user      User          @relation(fields: [userId], references: [id])
+  messages  ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid()) @db.Uuid
+  conversationId String           @map("conversation_id") @db.Uuid
+  role           String
+  content        String
+  sources        Json?
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("chat_messages")
 }
