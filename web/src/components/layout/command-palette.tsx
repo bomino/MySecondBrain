@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 
 export function CommandPalette() {
@@ -35,24 +36,40 @@ export function CommandPalette() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[20vh]">
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-2xl dark:bg-gray-800">
-        <input
-          autoFocus
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search or type + to create..."
-          className="w-full rounded-t-lg border-b px-4 py-3 focus:outline-none dark:bg-gray-800 dark:text-white"
-        />
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
+      style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+    >
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-xl shadow-2xl fade-in"
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+      >
+        <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+          <Search size={16} style={{ color: "var(--text-faint)" }} />
+          <input
+            autoFocus
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search or type + to create..."
+            className="flex-1 bg-transparent text-sm focus:outline-none"
+            style={{ color: "var(--text-primary)" }}
+          />
+        </div>
         <div className="max-h-80 overflow-y-auto">
           {(data?.data ?? []).map((r) => (
             <button
               key={`${r.type}-${r.id}`}
               onClick={() => handleSelect(r)}
-              className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="w-full px-4 py-2.5 text-left transition-colors duration-100"
+              style={{ color: "var(--text-primary)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--elevated)")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
-              <span className="text-xs text-gray-400">{r.type === "note" ? "Note" : "Journal"}</span>
+              <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>
+                {r.type === "note" ? "Note" : "Journal"}
+              </span>
               <p className="text-sm">{r.title || "Untitled"}</p>
             </button>
           ))}

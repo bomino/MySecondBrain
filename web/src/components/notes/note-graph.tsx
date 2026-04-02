@@ -35,7 +35,7 @@ export function NoteGraph() {
       y: Math.sin((2 * Math.PI * i) / (data?.nodes.length ?? 1)) * 300 + 300,
     },
     style: {
-      background: "#6366f1",
+      background: "#d97706",
       color: "white",
       border: "none",
       borderRadius: "8px",
@@ -49,7 +49,7 @@ export function NoteGraph() {
     source: e.source,
     target: e.target,
     animated: true,
-    style: { stroke: "#6366f1" },
+    style: { stroke: "#d97706" },
   }));
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
@@ -66,7 +66,7 @@ export function NoteGraph() {
   if (!data?.nodes.length) return <p className="p-4 text-gray-500">No linked notes yet.</p>;
 
   return (
-    <div className="h-[500px] w-full rounded border">
+    <div className="h-[500px] w-full rounded" style={{ border: "1px solid var(--border)" }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
