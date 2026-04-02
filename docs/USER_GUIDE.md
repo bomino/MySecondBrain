@@ -15,7 +15,9 @@ A personal knowledge OS for notes, journal, and AI-assisted thinking. This guide
 7. [Web Clipper](#7-web-clipper)
 8. [Keyboard Shortcuts](#8-keyboard-shortcuts)
 9. [Configuration](#9-configuration)
-10. [Troubleshooting](#10-troubleshooting)
+10. [Settings](#10-settings)
+11. [Mobile and PWA](#11-mobile-and-pwa)
+12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
@@ -39,10 +41,10 @@ After registration you are logged in and land on the notes list.
 
 ### Create your first note
 
-1. Click **New Note** in the sidebar, or press `Ctrl+K` (Mac: `Cmd+K`) to open the command palette and type `+note`.
+1. Click **New Note** in the sidebar (it's a dropdown — choose **Blank note** or a saved template), or press `Ctrl+K` (Mac: `Cmd+K`) to open the command palette and type `+note`.
 2. Give the note a title.
 3. Start writing. The editor supports full markdown syntax.
-4. The note saves automatically as you type.
+4. The note saves automatically as you type. The footer shows **Saving…** then **Saved** as the debounced save completes.
 
 ### Create your first journal entry
 
@@ -61,7 +63,7 @@ Journal entries are marked sensitive by default — they are processed by the lo
 
 Notes live at `/notes`. To create one:
 
-- Click **New Note** in the sidebar
+- Click **New Note** in the sidebar — it opens as a dropdown. Choose **Blank note** to start empty, or pick a saved template to pre-fill content and tags.
 - Press `Ctrl+K` / `Cmd+K` and type `+note`
 
 The editor (Tiptap/ProseMirror) supports:
@@ -70,7 +72,44 @@ The editor (Tiptap/ProseMirror) supports:
 - Fenced code blocks with syntax highlighting (use ` ``` ` followed by a language name)
 - Block quotes, horizontal rules, tables
 
-Changes are auto-saved. There is no manual save action.
+**Auto-save:** changes are saved automatically with a 500 ms debounce. The editor footer shows **Saving…** while the save is in flight and **Saved** once it completes. There is no manual save action.
+
+**Word count:** the current word count is shown in the editor footer next to the save indicator.
+
+### Note templates
+
+Templates let you start a note with pre-defined structure and tags.
+
+To create a template:
+- Open any note, then choose **Save as template** from the three-dot menu in the editor toolbar.
+- Or go to **Settings → Templates** and click **New template**.
+
+To use a template:
+- Click the **New Note** dropdown in the sidebar and select the template by name.
+
+Templates are managed in Settings (see [Settings](#10-settings)).
+
+### Pinning notes
+
+Pin frequently used notes so they sort to the top of the notes list regardless of last-edited order.
+
+- Open a note and click the **pin icon** (📌) in the editor toolbar to toggle the pin on or off.
+- Pinned notes appear at the top of the list with a pin indicator.
+
+### Exporting a note
+
+To download a note as a `.md` file:
+- Open the note and click the **Export** button in the editor toolbar.
+- The file is downloaded immediately using the note title as the filename.
+
+### Trash and restore
+
+Deleting a note moves it to the trash instead of permanently removing it.
+
+- Click **Delete** on any note. A confirmation dialog appears — confirm to move the note to trash.
+- Deleted notes are accessible from the **Trash** link in the sidebar (`/trash`).
+- To restore a note, open Trash and click **Restore** next to the note. It returns to the notes list with all its original content and tags.
+- To permanently delete, click **Delete permanently** in the Trash view. This cannot be undone.
 
 ### Folders and hierarchy
 
@@ -91,7 +130,7 @@ Tags are shared across notes and journal entries. To add a tag to a note:
 - Type a tag name and press Enter (creates it if new)
 - Existing tags are suggested as you type
 
-Tags are colored. To change a tag's color or rename it, go to the tag management page from the sidebar's **Tags** section.
+Tags are colored. When creating a new tag (in the note header or in Settings), a color picker offers 8 preset colors. To change a tag's color or delete it, go to **Settings → Tags** (see [Settings](#10-settings)).
 
 To remove a tag from a note, click the `×` on the tag chip in the note header.
 
@@ -101,7 +140,7 @@ Type `[[` anywhere in the editor to open the link picker. Type to filter notes b
 
 When a wiki-link is saved, the system automatically records both the outbound link (from this note) and the backlink (on the target note). Both sides of the connection are maintained without any manual action.
 
-To view what links to a given note, open the note and click the **Backlinks** panel in the sidebar. This shows every note that has linked to the current one.
+To view what links to a given note, open the note and scroll below the editor — there is a collapsible **Backlinks** panel that lists every note containing a link to the current one. Click the panel header to expand or collapse it. Click any backlink entry to navigate to that note.
 
 ### Graph view
 
@@ -118,7 +157,7 @@ Notes are **non-sensitive by default**. This means AI features (summarization, a
 
 To mark a note as sensitive:
 - Open the note
-- Toggle **Sensitive** in the note header
+- Click the **Lock / Unlock** button in the editor toolbar (shows a lock icon). Lock = sensitive, Unlock = non-sensitive.
 
 Sensitive notes are processed by the local AI (Ollama) only. Mark a note sensitive when it contains personal health information, financial details, private communications, or anything you don't want leaving your machine.
 
@@ -134,7 +173,19 @@ Each date has exactly one journal entry. Navigate to a date from the journal cal
 - Click any date on the calendar to open or create that day's entry
 - Click **Today** to jump to the current date
 
-The entry editor is the same Tiptap editor used for notes.
+The entry editor is the same Tiptap editor used for notes. Auto-save, word count, and the sensitivity toggle all behave the same as in the note editor.
+
+### Activity heatmap
+
+The top of the journal page shows a GitHub-style 52-week activity grid. Each cell represents one day — darker cells indicate days where an entry was written. Hover a cell to see the date. Click a cell to navigate to that day's entry.
+
+### Streaks
+
+Below the heatmap, a flame icon and **N day streak** counter shows how many consecutive days you've written a journal entry. The streak resets if you skip a day.
+
+### Deleting a journal entry
+
+Click **Delete** on a journal entry. A confirmation dialog appears before the entry is moved to trash. Deleted entries are visible in the **Trash** section of the sidebar and can be restored the same way as notes.
 
 ### Mood and energy tracking
 
@@ -156,11 +207,9 @@ What this means in practice:
 - All AI processing (embeddings, summarization, chat context) for journal entries runs through Ollama on your local machine
 - If Ollama is not running, AI features for journal entries queue up and process when Ollama comes back online
 
-To make a specific entry non-sensitive (for example, a public reflection you don't mind cloud processing), toggle **Sensitive** off in the entry header. Do this deliberately — the default exists to protect your private thoughts.
+To make a specific entry non-sensitive (for example, a public reflection you don't mind cloud processing), click the **Lock / Unlock** button in the editor toolbar. Do this deliberately — the default exists to protect your private thoughts.
 
-### Journal streaks
-
-The journal section shows a streak counter: how many consecutive days you've written an entry. The `/api/v1/journal/streaks` endpoint provides the raw stats if you want to build on them.
+The `/api/v1/journal/streaks` endpoint exposes the raw streak stats if you want to build on them.
 
 ---
 
@@ -222,6 +271,8 @@ The global routing mode (`AI_ROUTING_MODE` environment variable) can force all t
 ### Chat with your knowledge base
 
 The AI Chat panel is accessible from the sidebar or by clicking the chat icon. It slides in from the right and can be expanded to full page.
+
+**Conversation history:** past conversations are saved to the database. The left side of the chat panel lists previous conversations — click any to reload it. Click **New Chat** to start a fresh conversation.
 
 Type a question in natural language. The system:
 
@@ -295,7 +346,18 @@ If Ollama is not running, non-sensitive content continues processing via Claude.
 
 ## 6. Importing Data
 
-### Markdown import
+### Import UI
+
+The easiest way to import files is through the built-in import page at `/import`:
+
+- Click the **Import** button on the notes page, or navigate to `/import` directly.
+- Drag and drop `.md`, `.markdown`, `.txt`, or `.zip` files onto the upload area, or click to browse.
+- Multiple files can be dropped at once.
+- Progress is shown inline after upload begins.
+
+For scripted or bulk imports, use the API directly (see below).
+
+### Markdown import (API)
 
 Use markdown import to seed your knowledge base from Obsidian, Notion exports, Bear, or any other tool that exports `.md` files.
 
@@ -456,6 +518,12 @@ Type these prefixes in the command palette to create content instantly:
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+K` / `Cmd+K` | Command palette (search, navigate, create) |
+| `N` | Go to Notes |
+| `J` | Go to Journal |
+| `/` | Focus search bar |
+| `?` | Open keyboard shortcut help modal |
+
+These single-key shortcuts are active when focus is not inside a text input.
 
 ---
 
@@ -524,7 +592,61 @@ Set `AI_ROUTING_MODE=cloud` and provide `ANTHROPIC_API_KEY`. All AI features use
 
 ---
 
-## 10. Troubleshooting
+## 10. Settings
+
+The Settings page is at `/settings`. Access it from the gear icon in the sidebar.
+
+### Tags
+
+**Settings → Tags** lists all tags across your notes and journal entries.
+
+- **Create a tag** — type a name, choose one of the 8 preset colors from the color picker, and click **Create**.
+- **Delete a tag** — click the trash icon next to any tag. This removes the tag from all content.
+
+Tags can also be created inline from the note or journal entry header — type a name in the tag input and press Enter.
+
+### Templates
+
+**Settings → Templates** shows all saved note templates.
+
+- Click **New template** to create one from scratch.
+- To save an existing note as a template, open the note and choose **Save as template** from the editor toolbar's three-dot menu.
+- Delete a template from the templates list — this does not affect notes already created from it.
+
+### Theme
+
+A **Dark / Light / System** toggle is in the sidebar (bottom of the navigation). **System** follows your OS appearance setting.
+
+---
+
+## 11. Mobile and PWA
+
+### Mobile layout
+
+On small screens the app switches to a mobile layout:
+
+- The sidebar is hidden by default. Tap the **hamburger menu** (≡) in the top-left corner to open it as an overlay.
+- A **bottom navigation bar** provides quick access to Notes, Journal, Search, and AI Chat.
+
+All features are fully available on mobile — the layout adapts but no functionality is removed.
+
+### Installing as a PWA
+
+The app is installable as a Progressive Web App. When accessed from a supported browser (Chrome, Edge, Safari on iOS):
+
+1. Look for the **install prompt** in the browser address bar (a small icon or "Install" option).
+2. Click it and confirm installation.
+3. The app opens in its own window without browser chrome, and appears in your OS app launcher.
+
+The PWA uses the same localhost URL and session as the browser — there is no separate sync or account needed.
+
+### Toast notifications
+
+All create, update, and delete operations show a brief toast notification in the bottom-right corner confirming success or reporting an error. Toasts dismiss automatically after a few seconds.
+
+---
+
+## 12. Troubleshooting
 
 ### App is not accessible at localhost:3001
 
