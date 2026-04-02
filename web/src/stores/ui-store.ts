@@ -12,7 +12,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   chatPanelOpen: false,
-  theme: "system",
+  theme: "dark",
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   toggleChatPanel: () => set((s) => ({ chatPanelOpen: !s.chatPanelOpen })),
   setTheme: (theme) => set({ theme }),

@@ -16,7 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <SessionProvider>
+    <SessionProvider basePath="/api/v1/auth">
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>{children}</ThemeProvider>
       </QueryClientProvider>
@@ -29,13 +29,13 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else if (theme === "light") {
-      root.classList.remove("dark");
+    if (theme === "light") {
+      root.classList.add("light");
+    } else if (theme === "dark") {
+      root.classList.remove("light");
     } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.classList.toggle("dark", prefersDark);
+      const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+      root.classList.toggle("light", prefersLight);
     }
   }, [theme]);
 

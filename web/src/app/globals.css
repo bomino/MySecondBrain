@@ -1,1 +1,192 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #0a0a0a;
+    --surface: #171717;
+    --elevated: #262626;
+    --border: #262626;
+    --border-hover: #404040;
+    --ring: #d97706;
+
+    --accent: #d97706;
+    --accent-hover: #b45309;
+    --accent-light: #fbbf24;
+    --accent-muted: rgba(217, 119, 6, 0.08);
+
+    --text-primary: #fafafa;
+    --text-secondary: #a3a3a3;
+    --text-muted: #737373;
+    --text-faint: #525252;
+
+    --destructive: #ef4444;
+    --success: #22c55e;
+
+    --gradient-accent: linear-gradient(135deg, #d97706, #b45309);
+    --gradient-logo: linear-gradient(135deg, #d97706, #ea580c);
+  }
+
+  .light {
+    --background: #fafafa;
+    --surface: #ffffff;
+    --elevated: #f5f5f5;
+    --border: #e5e5e5;
+    --border-hover: #d4d4d4;
+    --ring: #d97706;
+
+    --accent: #d97706;
+    --accent-hover: #b45309;
+    --accent-light: #d97706;
+    --accent-muted: rgba(217, 119, 6, 0.08);
+
+    --text-primary: #0a0a0a;
+    --text-secondary: #525252;
+    --text-muted: #737373;
+    --text-faint: #a3a3a3;
+
+    --destructive: #ef4444;
+    --success: #22c55e;
+
+    --gradient-accent: linear-gradient(135deg, #d97706, #b45309);
+    --gradient-logo: linear-gradient(135deg, #d97706, #ea580c);
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  ::selection {
+    background-color: rgba(217, 119, 6, 0.3);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-faint);
+  }
+}
+
+@layer components {
+  .card-hover {
+    transition: border-color 150ms ease;
+  }
+  .card-hover:hover {
+    border-color: var(--border-hover);
+  }
+
+  .nav-item {
+    transition: background-color 150ms ease;
+  }
+  .nav-item:hover {
+    background-color: var(--surface);
+  }
+
+  .btn-accent {
+    background: var(--gradient-accent);
+    color: white;
+    border: none;
+    font-weight: 500;
+    transition: opacity 150ms ease;
+  }
+  .btn-accent:hover {
+    opacity: 0.9;
+  }
+
+  .btn-surface {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: border-color 150ms ease, background-color 150ms ease;
+  }
+  .btn-surface:hover {
+    border-color: var(--border-hover);
+    background-color: var(--elevated);
+  }
+
+  .input-base {
+    background-color: var(--elevated);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .input-base:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+  }
+
+  .tag {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+
+  .tag-amber { background: rgba(217, 119, 6, 0.08); color: #fbbf24; }
+  .tag-blue { background: rgba(37, 99, 235, 0.08); color: #60a5fa; }
+  .tag-green { background: rgba(22, 163, 74, 0.08); color: #4ade80; }
+  .tag-red { background: rgba(239, 68, 68, 0.08); color: #f87171; }
+  .tag-purple { background: rgba(139, 92, 246, 0.08); color: #a78bfa; }
+
+  .fade-in {
+    animation: fadeIn 200ms ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .prose-editor {
+    color: var(--text-primary);
+    line-height: 1.7;
+  }
+  .prose-editor h1, .prose-editor h2, .prose-editor h3 {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .prose-editor p { color: var(--text-secondary); }
+  .prose-editor a { color: var(--accent-light); }
+  .prose-editor code {
+    background-color: var(--elevated);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  .prose-editor pre {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+  }
+  .prose-editor blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    color: var(--text-muted);
+  }
+  .prose-editor [data-wiki-link] {
+    color: var(--accent-light);
+    cursor: pointer;
+  }
+  .prose-editor [data-wiki-link]:hover {
+    text-decoration: underline;
+  }
+
+  .ProseMirror {
+    min-height: 60vh;
+    padding: 16px;
+    outline: none;
+  }
+  .ProseMirror p.is-editor-empty:first-child::before {
+    color: var(--text-faint);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+}
