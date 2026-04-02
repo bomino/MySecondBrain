@@ -5,6 +5,7 @@ interface Note {
   id: string;
   title: string;
   contentPlain: string;
+  isSensitive?: boolean;
   tags: { id: string; name: string; color: string }[];
   createdAt: string;
   updatedAt: string;
@@ -25,8 +26,7 @@ export function useNotes(params?: { parentId?: string; tag?: string }) {
       if (params?.parentId) searchParams.set("parentId", params.parentId);
       if (params?.tag) searchParams.set("tag", params.tag);
       const res = await fetch(`/api/v1/notes?${searchParams}`);
-      const data = await res.json();
-      return data as { data: Note[]; total: number };
+      return res.json() as Promise<{ data: Note[]; total: number }>;
     },
   });
 }
@@ -46,12 +46,13 @@ export function useNote(id: string) {
 export function useCreateNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { title?: string; content?: unknown; parentId?: string }) => {
+    mutationFn: async (data: { title?: string; content?: unknown; parentId?: string; isSensitive?: boolean; tagIds?: string[] }) => {
       const res = await fetch("/api/v1/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error("Failed to create note");
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
@@ -62,12 +63,13 @@ export function useCreateNote() {
 export function useUpdateNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: unknown; tagIds?: string[] }) => {
+    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: unknown; parentId?: string | null; isSensitive?: boolean; tagIds?: string[] }) => {
       const res = await fetch(`/api/v1/notes/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error("Failed to update note");
       return res.json();
     },
     onSuccess: (_, vars) => {
@@ -75,5 +77,21 @@ export function useUpdateNote() {
       queryClient.invalidateQueries({ queryKey: ["note", vars.id] });
     },
     onError: () => toast("Failed to save note", "error"),
+  });
+}
+
+export function useDeleteNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/v1/notes/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete note");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      toast("Note deleted", "success");
+    },
+    onError: () => toast("Failed to delete note", "error"),
   });
 }

@@ -7,12 +7,12 @@ interface JournalEntry {
   contentPlain: string;
   mood: number | null;
   energy: number | null;
+  isSensitive: boolean;
   updatedAt: string;
 }
 
 interface JournalDetail extends JournalEntry {
   content: Record<string, unknown>;
-  isSensitive: boolean;
   tags: { id: string; name: string; color: string }[];
 }
 
@@ -45,12 +45,13 @@ export function useJournalEntry(date: string) {
 export function useCreateJournalEntry() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { date: string; content?: unknown; mood?: number; energy?: number }) => {
+    mutationFn: async (data: { date: string; content?: unknown; mood?: number | null; energy?: number | null; isSensitive?: boolean }) => {
       const res = await fetch("/api/v1/journal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error("Failed to create entry");
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["journal"] }),
@@ -61,12 +62,13 @@ export function useCreateJournalEntry() {
 export function useUpdateJournalEntry() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ date, ...data }: { date: string; content?: unknown; mood?: number | null; energy?: number | null }) => {
+    mutationFn: async ({ date, ...data }: { date: string; content?: unknown; mood?: number | null; energy?: number | null; isSensitive?: boolean }) => {
       const res = await fetch(`/api/v1/journal/${date}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error("Failed to update entry");
       return res.json();
     },
     onSuccess: (_, vars) => {
@@ -74,6 +76,22 @@ export function useUpdateJournalEntry() {
       queryClient.invalidateQueries({ queryKey: ["journal", vars.date] });
     },
     onError: () => toast("Failed to save journal entry", "error"),
+  });
+}
+
+export function useDeleteJournalEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (date: string) => {
+      const res = await fetch(`/api/v1/journal/${date}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete entry");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal"] });
+      toast("Journal entry deleted", "success");
+    },
+    onError: () => toast("Failed to delete journal entry", "error"),
   });
 }
 
