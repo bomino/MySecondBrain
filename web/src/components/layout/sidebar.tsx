@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Calendar, Trash2, Settings } from "lucide-react";
+import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Calendar, Trash2, Settings, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useUIStore } from "@/stores/ui-store";
 import { useAIStatus } from "@/hooks/use-ai-status";
 import { cn } from "@/lib/utils";
@@ -25,8 +26,8 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-60 flex-col border-r" style={{ backgroundColor: "var(--background)", borderColor: "var(--border)" }}>
-      <div className="flex items-center gap-2 p-4">
-        <img src="/logo.png" alt="Second Brain" className="h-7 w-7 rounded-lg object-contain" />
+      <div className="flex items-center gap-3 p-4">
+        <img src="/logo.png" alt="Second Brain" className="h-10 w-10 rounded-lg object-contain" />
         <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Second Brain</span>
       </div>
 
@@ -145,7 +146,18 @@ export function Sidebar() {
         >
           M
         </div>
-        <span>mlawali</span>
+        <span className="flex-1">mlawali</span>
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="rounded-md p-1 transition-colors duration-150"
+          style={{ color: "var(--text-faint)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--destructive)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut size={14} />
+        </button>
       </div>
     </aside>
   );
