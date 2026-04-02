@@ -27,6 +27,8 @@ async def _ollama_embed(text: str) -> list[float]:
 
 
 async def _cloud_embed(text: str) -> list[float]:
+    # Uses local Ollama for all embeddings to ensure consistent vector dimensions (768).
+    # Cloud embedding APIs use different dimensions which would break pgvector similarity search.
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{settings.ollama_base_url}/api/embeddings",

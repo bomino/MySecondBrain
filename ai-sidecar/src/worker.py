@@ -20,6 +20,35 @@ async def process_job(job_data: dict):
             text=job_data["text"],
             is_sensitive=job_data.get("is_sensitive", False),
         )
+    elif job_type == "auto_tag":
+        import httpx
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "http://localhost:8000/auto-tag",
+                json={
+                    "text": job_data.get("text", ""),
+                    "is_sensitive": job_data.get("is_sensitive", False),
+                    "existing_tags": [],
+                },
+                timeout=60.0,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            import json as json_mod
+            await conn.execute(
+                """
+                UPDATE ai_job_logs SET status = 'pending_review', result = $4::jsonb, completed_at = NOW()
+                WHERE entity_type = $1 AND entity_id = $2::uuid AND job_type = $3 AND status = 'queued'
+                """,
+                job_data["entity_type"],
+                job_data["entity_id"],
+                "auto_tag",
+                json_mod.dumps(result),
+            )
+        return
 
     pool = await get_pool()
     async with pool.acquire() as conn:
