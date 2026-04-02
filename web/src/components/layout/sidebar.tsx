@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BookOpen, Search, Sparkles, Sun, Moon, Monitor, Calendar, Trash2, Settings } from "lucide-react";
+import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Calendar, Trash2, Settings } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/search", label: "Search", icon: Search },
   { href: "/ai", label: "AI Chat", icon: Sparkles },
+  { href: "/digest", label: "Digest", icon: Lightbulb },
 ];
 
 export function Sidebar() {
