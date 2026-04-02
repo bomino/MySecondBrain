@@ -80,6 +80,23 @@ services:
       redis:
         condition: service_healthy
 
+  ai-worker:
+    build:
+      context: ./ai-sidecar
+      dockerfile: Dockerfile
+    command: python -m src.worker
+    environment:
+      DATABASE_URL: postgresql://brain:brain@postgres:5432/secondbrain
+      REDIS_URL: redis://redis:6379
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_ROUTING_MODE: ${AI_ROUTING_MODE:-hybrid}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   pgdata:
   miniodata:
