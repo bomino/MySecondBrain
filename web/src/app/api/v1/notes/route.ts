@@ -28,19 +28,36 @@ export async function GET(req: NextRequest) {
   const parentId = searchParams.get("parentId") ?? undefined;
   const tag = searchParams.get("tag") ?? undefined;
 
+  let noteIdsWithTag: string[] | undefined;
+  if (tag) {
+    const taggedEntries = await db.taggable.findMany({
+      where: { entityType: "note", tag: { name: tag, userId: user.id! } },
+      select: { entityId: true },
+    });
+    noteIdsWithTag = taggedEntries.map((t) => t.entityId);
+  }
+
   const where = {
     userId: user.id!,
     deletedAt: null,
     ...(parentId !== undefined ? { parentId: parentId || null } : {}),
-    ...(tag
-      ? { taggables: { some: { tag: { name: tag } } } }
-      : {}),
+    ...(noteIdsWithTag !== undefined ? { id: { in: noteIdsWithTag } } : {}),
   };
+
+  const sort = searchParams.get("sort") ?? "recent";
+  let orderBy: Record<string, string>[] = [{ isPinned: "desc" }];
+  if (sort === "title") {
+    orderBy.push({ title: "asc" });
+  } else if (sort === "created") {
+    orderBy.push({ createdAt: "desc" });
+  } else {
+    orderBy.push({ updatedAt: "desc" });
+  }
 
   const [notes, total] = await Promise.all([
     db.note.findMany({
       where,
-      orderBy: { updatedAt: "desc" },
+      orderBy,
       skip: (page - 1) * limit,
       take: limit,
       select: {
@@ -49,21 +66,33 @@ export async function GET(req: NextRequest) {
         contentPlain: true,
         parentId: true,
         isSensitive: true,
+        isPinned: true,
         createdAt: true,
         updatedAt: true,
-        taggables: {
-          select: { tag: { select: { id: true, name: true, color: true } } },
-        },
       },
     }),
     db.note.count({ where }),
   ]);
 
+  const noteIds = notes.map((n) => n.id);
+  const taggables = noteIds.length > 0
+    ? await db.taggable.findMany({
+        where: { entityType: "note", entityId: { in: noteIds } },
+        include: { tag: { select: { id: true, name: true, color: true } } },
+      })
+    : [];
+
+  const tagsByNote = new Map<string, { id: string; name: string; color: string }[]>();
+  for (const t of taggables) {
+    const list = tagsByNote.get(t.entityId) ?? [];
+    list.push(t.tag);
+    tagsByNote.set(t.entityId, list);
+  }
+
   const formatted = notes.map((n) => ({
     ...n,
     contentPlain: n.contentPlain.slice(0, 200),
-    tags: n.taggables.map((t) => t.tag),
-    taggables: undefined,
+    tags: tagsByNote.get(n.id) ?? [],
   }));
 
   return success({ data: formatted, total, page, limit });

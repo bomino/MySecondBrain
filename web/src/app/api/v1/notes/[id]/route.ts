@@ -30,9 +30,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const note = await db.note.findFirst({
     where: { id, userId: user.id!, deletedAt: null },
     include: {
-      taggables: {
-        select: { tag: { select: { id: true, name: true, color: true } } },
-      },
       children: {
         where: { deletedAt: null },
         select: { id: true, title: true },
@@ -43,10 +40,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   if (!note) return notFound("Note");
 
+  const taggables = await db.taggable.findMany({
+    where: { entityType: "note", entityId: id },
+    include: { tag: { select: { id: true, name: true, color: true } } },
+  });
+
   return success({
     ...note,
-    tags: note.taggables.map((t) => t.tag),
-    taggables: undefined,
+    tags: taggables.map((t) => t.tag),
   });
 }
 

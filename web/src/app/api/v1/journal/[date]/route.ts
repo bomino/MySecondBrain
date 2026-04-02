@@ -26,19 +26,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const entry = await db.journalEntry.findFirst({
     where: { userId: user.id!, date: new Date(date), deletedAt: null },
-    include: {
-      taggables: {
-        select: { tag: { select: { id: true, name: true, color: true } } },
-      },
-    },
   });
 
   if (!entry) return notFound("Journal entry");
 
+  const taggables = await db.taggable.findMany({
+    where: { entityType: "journal_entry", entityId: entry.id },
+    include: { tag: { select: { id: true, name: true, color: true } } },
+  });
+
   return success({
     ...entry,
-    tags: entry.taggables.map((t) => t.tag),
-    taggables: undefined,
+    tags: taggables.map((t) => t.tag),
   });
 }
 

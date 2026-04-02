@@ -44,7 +44,6 @@ model Note {
   children     Note[]    @relation("NoteHierarchy")
   outgoingLinks NoteLink[] @relation("NoteLinksSource")
   incomingLinks NoteLink[] @relation("NoteLinksTarget")
-  taggables    Taggable[]
 
   @@index([userId, deletedAt])
   @@index([parentId])
@@ -77,7 +76,6 @@ model JournalEntry {
   deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
 
   user         User      @relation(fields: [userId], references: [id])
-  taggables    Taggable[]
 
   @@unique([userId, date])
   @@index([userId, deletedAt])
@@ -102,8 +100,6 @@ model Taggable {
   entityId   String @map("entity_id") @db.Uuid
 
   tag        Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  note       Note?  @relation(fields: [entityId], references: [id], map: "taggable_note_fk")
-  journalEntry JournalEntry? @relation(fields: [entityId], references: [id], map: "taggable_journal_fk")
 
   @@id([tagId, entityType, entityId])
   @@index([entityType, entityId])
