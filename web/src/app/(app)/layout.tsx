@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/sidebar";
+import { CommandPalette } from "@/components/layout/command-palette";
 
 export default async function AppLayout({
   children,
@@ -15,6 +16,7 @@ export default async function AppLayout({
   return (
     <div className="flex h-screen">
       <Sidebar />
+      <CommandPalette />
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
