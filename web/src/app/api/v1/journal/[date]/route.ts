@@ -74,3 +74,26 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   return success(entry);
 }
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  let user;
+  try {
+    user = await requireAuth();
+  } catch {
+    return unauthorized();
+  }
+
+  const { date } = await params;
+
+  const existing = await db.journalEntry.findFirst({
+    where: { userId: user.id!, date: new Date(date), deletedAt: null },
+  });
+  if (!existing) return notFound("Journal entry");
+
+  await db.journalEntry.update({
+    where: { id: existing.id },
+    data: { deletedAt: new Date() },
+  });
+
+  return success({ deleted: true });
+}
