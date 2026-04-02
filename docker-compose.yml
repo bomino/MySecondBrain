@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -42,7 +42,7 @@ services:
       context: ./web
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       DATABASE_URL: postgresql://brain:brain@postgres:5432/secondbrain
       REDIS_URL: redis://redis:6379
@@ -52,7 +52,7 @@ services:
       S3_BUCKET: secondbrain
       AI_SIDECAR_URL: http://ai-sidecar:8000
       NEXTAUTH_SECRET: dev-secret-change-in-prod
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3001
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +84,7 @@ services:
     build:
       context: ./ai-sidecar
       dockerfile: Dockerfile
-    command: python -m src.worker
+    command: python -m worker
     environment:
       DATABASE_URL: postgresql://brain:brain@postgres:5432/secondbrain
       REDIS_URL: redis://redis:6379
