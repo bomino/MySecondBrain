@@ -6,6 +6,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
 import { useEffect } from "react";
+import { Bold, Italic, Heading1, Heading2, List as ListIcon, Code } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const lowlight = createLowlight(common);
 
@@ -24,9 +26,7 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        codeBlock: false,
-      }),
+      StarterKit.configure({ codeBlock: false }),
       CodeBlockLowlight.configure({ lowlight }),
       Placeholder.configure({ placeholder }),
     ],
@@ -37,7 +37,7 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
+        class: "prose-editor ProseMirror",
       },
     },
   });
@@ -55,62 +55,36 @@ export function TiptapEditor({
   if (!editor) return null;
 
   return (
-    <div className="rounded border">
-      <div className="flex gap-1 border-b p-2">
-        <ToolbarButton
-          active={editor.isActive("bold")}
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          label="B"
-        />
-        <ToolbarButton
-          active={editor.isActive("italic")}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          label="I"
-        />
-        <ToolbarButton
-          active={editor.isActive("heading", { level: 1 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          label="H1"
-        />
-        <ToolbarButton
-          active={editor.isActive("heading", { level: 2 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          label="H2"
-        />
-        <ToolbarButton
-          active={editor.isActive("bulletList")}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          label="List"
-        />
-        <ToolbarButton
-          active={editor.isActive("codeBlock")}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          label="Code"
-        />
+    <div className="rounded-[10px] overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+      <div className="flex gap-0.5 p-2" style={{ backgroundColor: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+        <ToolbarBtn active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} icon={<Bold size={15} />} />
+        <ToolbarBtn active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} icon={<Italic size={15} />} />
+        <ToolbarBtn active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} icon={<Heading1 size={15} />} />
+        <ToolbarBtn active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} icon={<Heading2 size={15} />} />
+        <ToolbarBtn active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} icon={<ListIcon size={15} />} />
+        <ToolbarBtn active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()} icon={<Code size={15} />} />
       </div>
-      <EditorContent editor={editor} />
+      <div style={{ backgroundColor: "var(--background)" }}>
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
 
-function ToolbarButton({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
+function ToolbarBtn({ active, onClick, icon }: { active: boolean; onClick: () => void; icon: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded px-2 py-1 text-sm ${
-        active ? "bg-indigo-100 text-indigo-700" : "text-gray-600 hover:bg-gray-100"
-      }`}
+      className={cn(
+        "rounded-md p-1.5 transition-colors duration-150",
+      )}
+      style={{
+        color: active ? "var(--accent-light)" : "var(--text-secondary)",
+        backgroundColor: active ? "var(--accent-muted)" : "transparent",
+      }}
     >
-      {label}
+      {icon}
     </button>
   );
 }

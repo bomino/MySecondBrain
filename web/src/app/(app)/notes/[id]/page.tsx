@@ -30,17 +30,18 @@ export default function NoteEditorPage() {
     [id, updateNote]
   );
 
-  if (isLoading) return <p className="p-6 text-gray-500">Loading...</p>;
-  if (!note) return <p className="p-6 text-red-500">Note not found</p>;
+  if (isLoading) return <p className="p-8" style={{ color: "var(--text-muted)" }}>Loading...</p>;
+  if (!note) return <p className="p-8" style={{ color: "var(--destructive)" }}>Note not found</p>;
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl p-8 fade-in">
       <input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onBlur={handleTitleBlur}
-        className="mb-4 w-full border-none bg-transparent text-3xl font-bold focus:outline-none"
+        className="mb-6 w-full border-none bg-transparent text-[28px] font-semibold focus:outline-none"
+        style={{ color: "var(--text-primary)" }}
         placeholder="Untitled"
       />
       <TiptapEditor
