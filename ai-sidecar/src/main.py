@@ -7,6 +7,7 @@ from routes.summarize import router as summarize_router
 from routes.chat import router as chat_router
 from routes.related import router as related_router
 from routes.digest import router as digest_router
+from routes.transform import router as transform_router
 
 
 @asynccontextmanager
@@ -24,6 +25,7 @@ app.include_router(summarize_router)
 app.include_router(chat_router)
 app.include_router(related_router)
 app.include_router(digest_router)
+app.include_router(transform_router)
 
 
 @app.get("/health")

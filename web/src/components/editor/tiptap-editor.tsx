@@ -8,6 +8,7 @@ import { common, createLowlight } from "lowlight";
 import { useEffect, useState } from "react";
 import { Bold, Italic, Heading1, Heading2, List as ListIcon, Code, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AiAssistMenu } from "./ai-assist-menu";
 
 const lowlight = createLowlight(common);
 
@@ -76,6 +77,7 @@ export function TiptapEditor({
       </div>
       <div style={{ backgroundColor: "var(--background)" }}>
         <EditorContent editor={editor} />
+        <AiAssistMenu editor={editor} />
       </div>
       <div className="flex items-center justify-between px-4 py-2 text-xs" style={{ borderTop: "1px solid var(--border)", color: "var(--text-faint)" }}>
         <span>{wordCount} words</span>
