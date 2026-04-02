@@ -11,6 +11,7 @@ const updateNoteSchema = z.object({
   content: z.any().optional(),
   parentId: z.string().uuid().nullable().optional(),
   isSensitive: z.boolean().optional(),
+  isPinned: z.boolean().optional(),
   tagIds: z.array(z.string().uuid()).optional(),
 });
 
@@ -69,7 +70,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
   });
   if (!existing) return notFound("Note");
 
-  const data: Record<string, unknown> = { ...parsed.data };
+  const { tagIds, ...updateFields } = parsed.data;
+  const data: Record<string, unknown> = { ...updateFields };
   if (parsed.data.content !== undefined) {
     data.contentPlain = extractPlainText(parsed.data.content);
   }
@@ -110,13 +112,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
   }
 
-  if (parsed.data.tagIds !== undefined) {
+  if (tagIds !== undefined) {
     await db.taggable.deleteMany({
       where: { entityType: "note", entityId: id },
     });
-    if (parsed.data.tagIds.length > 0) {
+    if (tagIds.length > 0) {
       await db.taggable.createMany({
-        data: parsed.data.tagIds.map((tagId) => ({
+        data: tagIds.map((tagId) => ({
           tagId,
           entityType: "note",
           entityId: id,
