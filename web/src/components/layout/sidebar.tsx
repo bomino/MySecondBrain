@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Calendar, Trash2, Settings, LogOut } from "lucide-react";
+import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Calendar, Trash2, Settings, LogOut, Download } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useUIStore } from "@/stores/ui-store";
 import { useAIStatus } from "@/hooks/use-ai-status";
@@ -131,6 +131,9 @@ export function Sidebar() {
       <div className="space-y-0.5 px-3 pb-2">
         <Link href="/trash" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm nav-item" style={{ color: "var(--text-faint)" }}>
           <Trash2 size={15} /> <span>Trash</span>
+        </Link>
+        <Link href="/export" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm nav-item" style={{ color: "var(--text-faint)" }}>
+          <Download size={15} /> <span>Export</span>
         </Link>
         <Link href="/settings" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm nav-item" style={{ color: "var(--text-faint)" }}>
           <Settings size={15} /> <span>Settings</span>
