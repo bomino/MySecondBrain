@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Calendar, Trash2, Settings } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
+import { useAIStatus } from "@/hooks/use-ai-status";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, theme, setTheme } = useUIStore();
+  const { data: aiStatus } = useAIStatus();
 
   if (!sidebarOpen) return null;
 
@@ -93,6 +95,25 @@ export function Sidebar() {
             >
               <Icon size={16} strokeWidth={2} />
               <span>{item.label}</span>
+              {item.href === "/ai" && aiStatus && (
+                <span
+                  className="ml-auto h-2 w-2 rounded-full"
+                  style={{
+                    backgroundColor: !aiStatus.sidecar
+                      ? "var(--destructive)"
+                      : aiStatus.pendingJobs > 0
+                        ? "var(--accent)"
+                        : "var(--success)",
+                  }}
+                  title={
+                    !aiStatus.sidecar
+                      ? "AI unavailable"
+                      : aiStatus.pendingJobs > 0
+                        ? `${aiStatus.pendingJobs} jobs processing`
+                        : "AI ready"
+                  }
+                />
+              )}
             </Link>
           );
         })}
