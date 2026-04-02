@@ -26,12 +26,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-60 flex-col border-r" style={{ backgroundColor: "var(--background)", borderColor: "var(--border)" }}>
       <div className="flex items-center gap-2 p-4">
-        <div
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold text-white"
-          style={{ background: "var(--gradient-logo)" }}
-        >
-          S
-        </div>
+        <img src="/logo.png" alt="Second Brain" className="h-7 w-7 rounded-lg object-contain" />
         <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Second Brain</span>
       </div>
 

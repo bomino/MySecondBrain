@@ -62,12 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="flex items-center gap-2">
-            <div
-              className="flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold text-white"
-              style={{ background: "var(--gradient-logo)" }}
-            >
-              S
-            </div>
+            <img src="/logo.png" alt="Second Brain" className="h-6 w-6 rounded-md object-contain" />
             <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               Second Brain
             </span>

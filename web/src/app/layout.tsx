@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description: "Your personal knowledge OS",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
   other: {
     "theme-color": "#0a0a0a",
