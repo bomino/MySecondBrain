@@ -15,8 +15,8 @@ Rules:
 - Never make up information not present in the context"""
 
 
-async def retrieve_context(query: str, user_id: str, top_k: int = 10) -> list[dict]:
-    embedding = await generate_embedding(query, "local")
+async def retrieve_context(query: str, user_id: str, top_k: int = 10, config: dict | None = None) -> list[dict]:
+    embedding = await generate_embedding(query, "local", config)
 
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -44,8 +44,8 @@ async def retrieve_context(query: str, user_id: str, top_k: int = 10) -> list[di
     return [dict(row) for row in rows]
 
 
-async def chat(query: str, user_id: str, routing_choice: str = "local") -> dict:
-    chunks = await retrieve_context(query, user_id)
+async def chat(query: str, user_id: str, routing_choice: str = "local", config: dict | None = None) -> dict:
+    chunks = await retrieve_context(query, user_id, config=config)
 
     if not chunks:
         return {
@@ -82,10 +82,13 @@ async def chat(query: str, user_id: str, routing_choice: str = "local") -> dict:
         for c in chunks
     )
 
-    provider = "local" if has_sensitive and routing_choice == "local" else routing_choice
-    prompt = f"Context from knowledge base:\n\n{context}\n\n---\n\nQuestion: {query}"
+    mode_override = (config or {}).get("routing_mode")
+    provider = sr.get_provider(has_sensitive and routing_choice == "local", mode_override=mode_override)
+    if not mode_override:
+        provider = "local" if has_sensitive and routing_choice == "local" else routing_choice
 
-    answer = await generate_text(prompt, SYSTEM_PROMPT, provider)
+    prompt = f"Context from knowledge base:\n\n{context}\n\n---\n\nQuestion: {query}"
+    answer = await generate_text(prompt, SYSTEM_PROMPT, provider, config)
 
     sources = []
     seen = set()

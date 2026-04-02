@@ -19,6 +19,7 @@ class TransformRequest(BaseModel):
     text: str
     action: str
     is_sensitive: bool = False
+    config: dict | None = None
 
 
 class TransformResponse(BaseModel):
@@ -28,6 +29,7 @@ class TransformResponse(BaseModel):
 @router.post("/transform", response_model=TransformResponse)
 async def transform(req: TransformRequest):
     system = PROMPTS.get(req.action, PROMPTS["improve"])
-    provider = sr.get_provider(req.is_sensitive)
-    result = await generate_text(req.text, system, provider)
+    mode_override = (req.config or {}).get("routing_mode")
+    provider = sr.get_provider(req.is_sensitive, mode_override=mode_override)
+    result = await generate_text(req.text, system, provider, req.config)
     return TransformResponse(result=result.strip())
