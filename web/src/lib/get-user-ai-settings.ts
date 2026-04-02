@@ -9,6 +9,14 @@ export interface AIConfig {
   embeddingModel: string;
 }
 
+export async function getUserSettings(userId: string): Promise<Record<string, unknown>> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { settings: true },
+  });
+  return (user?.settings as Record<string, unknown>) ?? {};
+}
+
 export async function getUserAIConfig(userId: string): Promise<AIConfig> {
   const user = await db.user.findUnique({
     where: { id: userId },

@@ -12,6 +12,11 @@ const settingsSchema = z
     chatModelCloud: z.string().optional(),
     chatModelLocal: z.string().optional(),
     embeddingModel: z.string().optional(),
+    autoTagEnabled: z.boolean().optional(),
+    autoTagAutoApply: z.boolean().optional(),
+    defaultNoteSensitive: z.boolean().optional(),
+    defaultSearchMode: z.enum(["combined", "fulltext", "semantic"]).optional(),
+    toastsEnabled: z.boolean().optional(),
   })
   .partial();
 
@@ -43,6 +48,11 @@ export async function GET(_req: NextRequest) {
     embeddingModel: settings.embeddingModel ?? "nomic-embed-text",
     hasApiKeyOverride: !!settings.anthropicApiKey,
     hasEnvApiKey: !!process.env.ANTHROPIC_API_KEY,
+    autoTagEnabled: settings.autoTagEnabled ?? true,
+    autoTagAutoApply: settings.autoTagAutoApply ?? false,
+    defaultNoteSensitive: settings.defaultNoteSensitive ?? false,
+    defaultSearchMode: settings.defaultSearchMode ?? "combined",
+    toastsEnabled: settings.toastsEnabled ?? true,
   });
 }
 
@@ -67,7 +77,9 @@ export async function PUT(req: NextRequest) {
   const newSettings = { ...currentSettings };
 
   for (const [key, value] of Object.entries(parsed.data)) {
-    if (value === "" || value === undefined) {
+    if (value === undefined) {
+      continue;
+    } else if (value === "") {
       delete newSettings[key];
     } else {
       newSettings[key] = value;

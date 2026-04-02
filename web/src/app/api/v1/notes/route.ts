@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { success, badRequest, unauthorized } from "@/lib/api-response";
 import { extractPlainText } from "@/lib/tiptap-utils";
 import { enqueueAIJob } from "@/lib/queue";
+import { getUserSettings } from "@/lib/get-user-ai-settings";
 
 const createNoteSchema = z.object({
   title: z.string().default(""),
@@ -143,7 +144,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  if (contentPlain.length > 0) {
+  const userSettings = await getUserSettings(user.id!);
+  if (contentPlain.length > 0 && userSettings.autoTagEnabled !== false) {
     await enqueueAIJob(user.id!, "note", note.id, "auto_tag", {
       text: `${title}\n${contentPlain}`,
       is_sensitive: isSensitive,

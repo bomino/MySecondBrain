@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/stores/toast-store";
 
-interface AISettings {
+interface AppSettings {
   aiRoutingMode: string;
   anthropicApiKey: string;
   ollamaBaseUrl: string;
@@ -10,6 +10,11 @@ interface AISettings {
   embeddingModel: string;
   hasApiKeyOverride: boolean;
   hasEnvApiKey: boolean;
+  autoTagEnabled: boolean;
+  autoTagAutoApply: boolean;
+  defaultNoteSensitive: boolean;
+  defaultSearchMode: string;
+  toastsEnabled: boolean;
 }
 
 export function useSettings() {
@@ -18,7 +23,7 @@ export function useSettings() {
     queryFn: async () => {
       const res = await fetch("/api/v1/settings");
       if (!res.ok) return null;
-      return res.json() as Promise<AISettings>;
+      return res.json() as Promise<AppSettings>;
     },
   });
 }
@@ -26,7 +31,7 @@ export function useSettings() {
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: Record<string, string | undefined>) => {
+    mutationFn: async (data: Record<string, string | boolean | undefined>) => {
       const res = await fetch("/api/v1/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
