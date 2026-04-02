@@ -61,6 +61,7 @@ services:
     volumes:
       - ./web/src:/app/src
       - ./web/prisma:/app/prisma
+      - ./web/public:/app/public
 
   ai-sidecar:
     build:

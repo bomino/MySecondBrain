@@ -12,12 +12,12 @@ import { NoteListSkeleton } from "@/components/ui/skeleton";
 
 export default function NotesPage() {
   const router = useRouter();
-  const { data, isLoading } = useNotes({ sort });
-  const createNote = useCreateNote();
-  const { data: templates } = useTemplates();
   const [view, setView] = useState<"list" | "graph">("list");
   const [sort, setSort] = useState<"recent" | "title" | "created">("recent");
   const [showNewMenu, setShowNewMenu] = useState(false);
+  const { data, isLoading } = useNotes({ sort });
+  const createNote = useCreateNote();
+  const { data: templates } = useTemplates();
 
   return (
     <div className="mx-auto max-w-3xl p-8 fade-in">
