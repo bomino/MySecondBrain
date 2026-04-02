@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Send, Sparkles } from "lucide-react";
 import { useAIChat } from "@/hooks/use-ai-chat";
 import { ChatMessage } from "./chat-message";
 
@@ -22,35 +23,48 @@ export function ChatPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-6">
         {messages.length === 0 && (
-          <p className="text-center text-gray-400">Ask anything about your notes and journal.</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Sparkles size={32} style={{ color: "var(--accent)", opacity: 0.4 }} />
+            <p className="mt-3 text-sm" style={{ color: "var(--text-muted)" }}>
+              Ask anything about your notes and journal.
+            </p>
+          </div>
         )}
         {messages.map((msg, i) => (
           <ChatMessage key={i} {...msg} />
         ))}
         {isLoading && (
-          <div className="text-sm text-gray-400">Thinking...</div>
+          <div className="text-sm" style={{ color: "var(--text-faint)" }}>
+            <span className="inline-flex gap-1">
+              <span className="animate-pulse">.</span>
+              <span className="animate-pulse" style={{ animationDelay: "150ms" }}>.</span>
+              <span className="animate-pulse" style={{ animationDelay: "300ms" }}>.</span>
+            </span>
+          </div>
         )}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={handleSubmit} className="border-t p-4">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask your second brain..."
-            className="flex-1 rounded border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
-            Send
-          </button>
-        </div>
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2 p-4"
+        style={{ borderTop: "1px solid var(--border)" }}
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask your second brain..."
+          className="flex-1 rounded-[10px] px-4 py-2.5 text-sm input-base"
+        />
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] btn-accent disabled:opacity-50"
+        >
+          <Send size={16} />
+        </button>
       </form>
     </div>
   );
