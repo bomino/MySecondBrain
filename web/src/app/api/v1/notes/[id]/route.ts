@@ -40,6 +40,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   if (!note) return notFound("Note");
 
+  db.note.update({ where: { id }, data: { lastViewedAt: new Date() } }).catch(() => {});
+
   const taggables = await db.taggable.findMany({
     where: { entityType: "note", entityId: id },
     include: { tag: { select: { id: true, name: true, color: true } } },

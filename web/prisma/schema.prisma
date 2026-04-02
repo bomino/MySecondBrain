@@ -35,6 +35,7 @@ model Note {
   parentId     String?   @map("parent_id") @db.Uuid
   isSensitive  Boolean   @default(false) @map("is_sensitive")
   isPinned     Boolean   @default(false) @map("is_pinned")
+  lastViewedAt DateTime? @map("last_viewed_at") @db.Timestamptz()
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()

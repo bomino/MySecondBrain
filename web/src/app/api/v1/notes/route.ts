@@ -143,5 +143,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  if (contentPlain.length > 0) {
+    await enqueueAIJob(user.id!, "note", note.id, "auto_tag", {
+      text: `${title}\n${contentPlain}`,
+      is_sensitive: isSensitive,
+    });
+  }
+
   return success(note, 201);
 }

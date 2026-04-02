@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-guard";
 import { success, badRequest, notFound, unauthorized } from "@/lib/api-response";
 import { extractPlainText } from "@/lib/tiptap-utils";
+import { enqueueAIJob } from "@/lib/queue";
 
 const updateEntrySchema = z.object({
   content: z.any().optional(),
@@ -70,6 +71,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
     where: { id: existing.id },
     data,
   });
+
+  const updatedPlain = (data.contentPlain as string) ?? existing.contentPlain;
+  if (updatedPlain.length > 0) {
+    await enqueueAIJob(user.id!, "journal_entry", existing.id, "embed", {
+      text: updatedPlain,
+      is_sensitive: parsed.data.isSensitive ?? existing.isSensitive,
+    });
+  }
 
   return success(entry);
 }
