@@ -6,6 +6,7 @@ import { useTags, useCreateTag, useDeleteTag } from "@/hooks/use-tags";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import { ColorPicker } from "@/components/tags/color-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useUIStore } from "@/stores/ui-store";
 
 export default function SettingsPage() {
   const { data: tags, isLoading } = useTags();
@@ -35,6 +36,7 @@ export default function SettingsPage() {
     toastsEnabled: true,
   });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const { editorFontSize, editorLineHeight, setEditorFontSize, setEditorLineHeight } = useUIStore();
 
   if (!prefsLoaded && aiSettings) {
     setPrefs({
@@ -124,6 +126,50 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+          Editor
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm" style={{ color: "var(--text-primary)" }}>Font size</label>
+              <span className="text-xs" style={{ color: "var(--text-faint)" }}>{editorFontSize}px</span>
+            </div>
+            <input
+              type="range"
+              min={12}
+              max={22}
+              step={1}
+              value={editorFontSize}
+              onChange={(e) => setEditorFontSize(Number(e.target.value))}
+              className="w-full accent-[#d97706]"
+            />
+            <div className="flex justify-between text-[10px]" style={{ color: "var(--text-faint)" }}>
+              <span>Small</span><span>Large</span>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm" style={{ color: "var(--text-primary)" }}>Line spacing</label>
+              <span className="text-xs" style={{ color: "var(--text-faint)" }}>{editorLineHeight}</span>
+            </div>
+            <input
+              type="range"
+              min={1.2}
+              max={2.2}
+              step={0.1}
+              value={editorLineHeight}
+              onChange={(e) => setEditorLineHeight(Number(e.target.value))}
+              className="w-full accent-[#d97706]"
+            />
+            <div className="flex justify-between text-[10px]" style={{ color: "var(--text-faint)" }}>
+              <span>Compact</span><span>Spacious</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="mb-8">

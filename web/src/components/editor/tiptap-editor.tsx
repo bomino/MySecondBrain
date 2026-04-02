@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Bold, Italic, Heading1, Heading2, List as ListIcon, Code, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AiAssistMenu } from "./ai-assist-menu";
+import { useUIStore } from "@/stores/ui-store";
 
 const lowlight = createLowlight(common);
 
@@ -32,6 +33,7 @@ export function TiptapEditor({
   saveStatus,
 }: TiptapEditorProps) {
   const [wordCount, setWordCount] = useState(0);
+  const { editorFontSize, editorLineHeight } = useUIStore();
 
   const editor = useEditor({
     extensions: [
@@ -75,7 +77,7 @@ export function TiptapEditor({
         <ToolbarBtn active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} icon={<ListIcon size={15} />} label="Bullet list" />
         <ToolbarBtn active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()} icon={<Code size={15} />} label="Code block" />
       </div>
-      <div style={{ backgroundColor: "var(--background)" }}>
+      <div style={{ backgroundColor: "var(--background)", fontSize: `${editorFontSize}px`, lineHeight: editorLineHeight }}>
         <EditorContent editor={editor} />
         <AiAssistMenu editor={editor} />
       </div>
