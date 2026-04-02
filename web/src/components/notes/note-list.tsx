@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { Lock, FileText } from "lucide-react";
 
 interface NoteListProps {
   notes: {
@@ -41,7 +41,8 @@ export function NoteList({ notes }: NoteListProps) {
   if (notes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 fade-in">
-        <p style={{ color: "var(--text-muted)" }}>No notes yet.</p>
+        <FileText size={40} style={{ color: "var(--text-faint)", opacity: 0.3 }} />
+        <p className="mt-3" style={{ color: "var(--text-muted)" }}>No notes yet.</p>
         <p className="mt-1 text-sm" style={{ color: "var(--text-faint)" }}>
           Create your first note to get started.
         </p>
@@ -50,7 +51,7 @@ export function NoteList({ notes }: NoteListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2 fade-in">
+    <div className="flex flex-col gap-2 stagger-in">
       {notes.map((note) => (
         <Link
           key={note.id}

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/stores/toast-store";
 
 interface Note {
   id: string;
@@ -54,6 +55,7 @@ export function useCreateNote() {
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+    onError: () => toast("Failed to create note", "error"),
   });
 }
 
@@ -72,5 +74,6 @@ export function useUpdateNote() {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       queryClient.invalidateQueries({ queryKey: ["note", vars.id] });
     },
+    onError: () => toast("Failed to save note", "error"),
   });
 }

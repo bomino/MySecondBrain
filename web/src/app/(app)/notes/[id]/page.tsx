@@ -4,6 +4,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useNote, useUpdateNote } from "@/hooks/use-notes";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 export default function NoteEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +37,13 @@ export default function NoteEditorPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-8 fade-in">
+      <div className="mb-4 flex items-center gap-1 text-sm" style={{ color: "var(--text-faint)" }}>
+        <Link href="/notes" className="transition-colors duration-150 hover:underline" style={{ color: "var(--text-muted)" }}>
+          Notes
+        </Link>
+        <ChevronRight size={14} />
+        <span style={{ color: "var(--text-secondary)" }}>{note.title || "Untitled"}</span>
+      </div>
       <input
         type="text"
         value={title}

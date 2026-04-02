@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, List, Globe } from "lucide-react";
+import { Plus, List, Globe, ArrowUpDown } from "lucide-react";
 import { useNotes, useCreateNote } from "@/hooks/use-notes";
 import { NoteList } from "@/components/notes/note-list";
 import { NoteGraph } from "@/components/notes/note-graph";
+import { NoteListSkeleton } from "@/components/ui/skeleton";
 
 export default function NotesPage() {
   const router = useRouter();
   const { data, isLoading } = useNotes();
   const createNote = useCreateNote();
   const [view, setView] = useState<"list" | "graph">("list");
+  const [sort, setSort] = useState<"recent" | "title" | "created">("recent");
 
   async function handleCreate() {
     const result = await createNote.mutateAsync({ title: "Untitled" });
@@ -28,6 +30,13 @@ export default function NotesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSort(sort === "recent" ? "title" : sort === "title" ? "created" : "recent")}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs btn-surface"
+          >
+            <ArrowUpDown size={14} />
+            {sort === "recent" ? "Recent" : sort === "title" ? "A-Z" : "Created"}
+          </button>
           <button
             onClick={() => setView("list")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs btn-surface ${view === "list" ? "!border-[var(--border-hover)]" : ""}`}
@@ -46,13 +55,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <p style={{ color: "var(--text-muted)" }}>Loading...</p>
-      ) : view === "graph" ? (
-        <NoteGraph />
-      ) : (
-        <NoteList notes={data?.data ?? []} />
-      )}
+      {isLoading ? <NoteListSkeleton /> : view === "graph" ? <NoteGraph /> : <NoteList notes={data?.data ?? []} />}
     </div>
   );
 }
