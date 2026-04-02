@@ -27,6 +27,25 @@ export default function SettingsPage() {
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [aiLoaded, setAiLoaded] = useState(false);
+  const [prefs, setPrefs] = useState({
+    autoTagEnabled: true,
+    autoTagAutoApply: false,
+    defaultNoteSensitive: false,
+    defaultSearchMode: "combined",
+    toastsEnabled: true,
+  });
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  if (!prefsLoaded && aiSettings) {
+    setPrefs({
+      autoTagEnabled: aiSettings.autoTagEnabled ?? true,
+      autoTagAutoApply: aiSettings.autoTagAutoApply ?? false,
+      defaultNoteSensitive: aiSettings.defaultNoteSensitive ?? false,
+      defaultSearchMode: aiSettings.defaultSearchMode ?? "combined",
+      toastsEnabled: aiSettings.toastsEnabled ?? true,
+    });
+    setPrefsLoaded(true);
+  }
 
   if (!aiLoaded && aiSettings) {
     setAiForm({
@@ -105,6 +124,57 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+          Preferences
+        </h2>
+        <div className="space-y-4">
+          <ToggleSetting
+            label="Auto-tag new notes"
+            description="AI suggests tags when you create a note"
+            value={prefs.autoTagEnabled}
+            onChange={(v) => { setPrefs(p => ({ ...p, autoTagEnabled: v })); updateSettings.mutate({ autoTagEnabled: v }); }}
+          />
+          <ToggleSetting
+            label="Auto-apply suggested tags"
+            description="Apply tags automatically without manual review"
+            value={prefs.autoTagAutoApply}
+            onChange={(v) => { setPrefs(p => ({ ...p, autoTagAutoApply: v })); updateSettings.mutate({ autoTagAutoApply: v }); }}
+          />
+          <ToggleSetting
+            label="New notes are sensitive by default"
+            description="New notes will use local AI processing only"
+            value={prefs.defaultNoteSensitive}
+            onChange={(v) => { setPrefs(p => ({ ...p, defaultNoteSensitive: v })); updateSettings.mutate({ defaultNoteSensitive: v }); }}
+          />
+          <ToggleSetting
+            label="Toast notifications"
+            description="Show success and error popups"
+            value={prefs.toastsEnabled}
+            onChange={(v) => { setPrefs(p => ({ ...p, toastsEnabled: v })); updateSettings.mutate({ toastsEnabled: v }); }}
+          />
+          <div>
+            <label className="mb-2 block text-xs" style={{ color: "var(--text-muted)" }}>Default search mode</label>
+            <div className="flex gap-1">
+              {(["combined", "fulltext", "semantic"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => { setPrefs(p => ({ ...p, defaultSearchMode: m })); updateSettings.mutate({ defaultSearchMode: m }); }}
+                  className="flex-1 rounded-lg py-2 text-xs font-medium transition-all duration-150"
+                  style={{
+                    backgroundColor: prefs.defaultSearchMode === m ? "var(--accent-muted)" : "var(--surface)",
+                    color: prefs.defaultSearchMode === m ? "var(--accent-light)" : "var(--text-secondary)",
+                    border: `1px solid ${prefs.defaultSearchMode === m ? "rgba(217,119,6,0.3)" : "var(--border)"}`,
+                  }}
+                >
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="mb-8">
@@ -252,6 +322,30 @@ export default function SettingsPage() {
         onConfirm={() => { if (deleteId) deleteTag.mutate(deleteId); setDeleteId(null); }}
         onCancel={() => setDeleteId(null)}
       />
+    </div>
+  );
+}
+
+function ToggleSetting({ label, description, value, onChange }: { label: string; description: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <span className="text-sm" style={{ color: "var(--text-primary)" }}>{label}</span>
+        <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{description}</p>
+      </div>
+      <button
+        onClick={() => onChange(!value)}
+        className="relative h-6 w-11 rounded-full transition-colors duration-200"
+        style={{ backgroundColor: value ? "var(--accent)" : "var(--elevated)" }}
+        role="switch"
+        aria-checked={value}
+        aria-label={label}
+      >
+        <span
+          className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+          style={{ transform: value ? "translateX(20px)" : "translateX(0)" }}
+        />
+      </button>
     </div>
   );
 }
