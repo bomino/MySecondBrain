@@ -18,8 +18,8 @@ export function CalendarHeatmap({ dates }: CalendarHeatmapProps) {
                 key={day}
                 className="h-[11px] w-[11px] rounded-[2px] transition-colors duration-150"
                 style={{
-                  backgroundColor: dateSet.has(day) ? "var(--accent)" : "var(--elevated)",
-                  opacity: dateSet.has(day) ? 1 : 0.5,
+                  backgroundColor: dateSet.has(day) ? "var(--accent)" : "var(--border)",
+                  opacity: dateSet.has(day) ? 1 : 0.4,
                 }}
                 title={`${day}${dateSet.has(day) ? " — entry exists" : ""}`}
               />
