@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/stores/toast-store";
 
 interface JournalEntry {
   id: string;
@@ -53,6 +54,7 @@ export function useCreateJournalEntry() {
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["journal"] }),
+    onError: () => toast("Failed to save journal entry", "error"),
   });
 }
 
@@ -70,6 +72,18 @@ export function useUpdateJournalEntry() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["journal"] });
       queryClient.invalidateQueries({ queryKey: ["journal", vars.date] });
+    },
+    onError: () => toast("Failed to save journal entry", "error"),
+  });
+}
+
+export function useJournalStreaks() {
+  return useQuery({
+    queryKey: ["journal-streaks"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/journal/streaks");
+      if (!res.ok) return { currentStreak: 0, longestStreak: 0, totalEntries: 0 };
+      return res.json() as Promise<{ currentStreak: number; longestStreak: number; totalEntries: number }>;
     },
   });
 }
