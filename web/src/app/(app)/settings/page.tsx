@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2, Tag as TagIcon, Cpu, Eye, EyeOff, Zap, Globe, Server } from "lucide-react";
 import { useTags, useCreateTag, useDeleteTag } from "@/hooks/use-tags";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
+import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { ColorPicker } from "@/components/tags/color-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUIStore } from "@/stores/ui-store";
@@ -38,6 +39,17 @@ export default function SettingsPage() {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const { editorFontSize, editorLineHeight, setEditorFontSize, setEditorLineHeight } = useUIStore();
 
+  const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
+  const [profileForm, setProfileForm] = useState({ email: "", currentPassword: "", newPassword: "" });
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
+
+  if (!profileLoaded && profile) {
+    setProfileForm((f) => ({ ...f, email: profile.email }));
+    setProfileLoaded(true);
+  }
+
   if (!prefsLoaded && aiSettings) {
     setPrefs({
       autoTagEnabled: aiSettings.autoTagEnabled ?? true,
@@ -71,6 +83,76 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl p-8 fade-in">
       <h1 className="mb-6 text-[22px] font-semibold" style={{ color: "var(--text-primary)" }}>Settings</h1>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+          Profile
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Email</label>
+            <input
+              type="email"
+              value={profileForm.email}
+              onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))}
+              className="w-full rounded-lg px-3 py-2 text-sm input-base"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Change password</label>
+            <div className="space-y-2">
+              <input
+                type={showPasswords ? "text" : "password"}
+                value={profileForm.currentPassword}
+                onChange={(e) => setProfileForm((f) => ({ ...f, currentPassword: e.target.value }))}
+                placeholder="Current password"
+                className="w-full rounded-lg px-3 py-2 text-sm input-base"
+              />
+              <div className="flex gap-2">
+                <input
+                  type={showPasswords ? "text" : "password"}
+                  value={profileForm.newPassword}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, newPassword: e.target.value }))}
+                  placeholder="New password (min 8 characters)"
+                  className="flex-1 rounded-lg px-3 py-2 text-sm input-base"
+                  minLength={8}
+                />
+                <button
+                  onClick={() => setShowPasswords(!showPasswords)}
+                  className="rounded-lg px-2 btn-surface"
+                  type="button"
+                  aria-label={showPasswords ? "Hide passwords" : "Show passwords"}
+                >
+                  {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          </div>
+          {profile && (
+            <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+              Account created {new Date(profile.createdAt).toLocaleDateString()}
+            </p>
+          )}
+          <button
+            onClick={() => {
+              const data: Record<string, string> = {};
+              if (profileForm.email !== profile?.email) data.email = profileForm.email;
+              if (profileForm.newPassword) {
+                data.currentPassword = profileForm.currentPassword;
+                data.newPassword = profileForm.newPassword;
+              }
+              if (Object.keys(data).length > 0) {
+                updateProfile.mutate(data as Parameters<typeof updateProfile.mutate>[0], {
+                  onSuccess: () => setProfileForm((f) => ({ ...f, currentPassword: "", newPassword: "" })),
+                });
+              }
+            }}
+            className="rounded-lg px-6 py-2 text-sm btn-accent"
+          >
+            Save Profile
+          </button>
+        </div>
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-4 text-base font-semibold" style={{ color: "var(--text-primary)" }}>

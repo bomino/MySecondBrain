@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, BookOpen, Search, Sparkles, Lightbulb, Sun, Moon, Monitor, Calendar, Trash2, Settings, LogOut } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useUIStore } from "@/stores/ui-store";
 import { useAIStatus } from "@/hooks/use-ai-status";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, theme, setTheme } = useUIStore();
+  const { data: session } = useSession();
   const { data: aiStatus } = useAIStatus();
 
   if (!sidebarOpen) return null;
@@ -144,9 +145,9 @@ export function Sidebar() {
           className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold text-white"
           style={{ background: "var(--gradient-logo)" }}
         >
-          M
+          {(session?.user?.email?.[0] ?? "U").toUpperCase()}
         </div>
-        <span className="flex-1">mlawali</span>
+        <span className="flex-1 truncate">{session?.user?.email?.split("@")[0] ?? "user"}</span>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="rounded-md p-1 transition-colors duration-150"
