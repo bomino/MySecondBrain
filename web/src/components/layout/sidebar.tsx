@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BookOpen, Search, Sparkles, Sun, Moon, Monitor } from "lucide-react";
+import { FileText, BookOpen, Search, Sparkles, Sun, Moon, Monitor, Calendar, Trash2, Settings } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils";
 
@@ -96,6 +96,26 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-3 pb-2">
+        <a
+          href={`/journal/${new Date().toISOString().split("T")[0]}`}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium nav-item"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          <Calendar size={16} strokeWidth={2} />
+          <span>Today</span>
+        </a>
+      </div>
+
+      <div className="space-y-0.5 px-3 pb-2">
+        <Link href="/trash" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm nav-item" style={{ color: "var(--text-faint)" }}>
+          <Trash2 size={15} /> <span>Trash</span>
+        </Link>
+        <Link href="/settings" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm nav-item" style={{ color: "var(--text-faint)" }}>
+          <Settings size={15} /> <span>Settings</span>
+        </Link>
+      </div>
 
       <div
         className="flex items-center gap-2 px-4 py-3 text-xs"
