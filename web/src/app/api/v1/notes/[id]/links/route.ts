@@ -21,14 +21,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (!note) return notFound("Note");
 
   const outgoing = await db.noteLink.findMany({
-    where: { sourceId: id },
+    where: { sourceId: id, target: { userId: user.id!, deletedAt: null } },
     select: {
       target: { select: { id: true, title: true } },
     },
   });
 
   const incoming = await db.noteLink.findMany({
-    where: { targetId: id },
+    where: { targetId: id, source: { userId: user.id!, deletedAt: null } },
     select: {
       source: { select: { id: true, title: true } },
     },

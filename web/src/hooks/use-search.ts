@@ -15,6 +15,7 @@ export function useSearch(query: string, mode = "combined") {
       const res = await fetch(
         `/api/v1/search?q=${encodeURIComponent(query)}&mode=${mode}`
       );
+      if (!res.ok) throw new Error("Search failed");
       return res.json() as Promise<{ data: SearchResult[] }>;
     },
     enabled: query.length >= 2,

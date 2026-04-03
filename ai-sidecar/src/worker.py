@@ -53,7 +53,7 @@ async def process_job(job_data: dict):
             await conn.execute(
                 """
                 UPDATE ai_job_logs SET status = 'pending_review', result = $4::jsonb, completed_at = NOW()
-                WHERE entity_type = $1 AND entity_id = $2::uuid AND job_type = $3 AND status = 'queued'
+                WHERE entity_type = $1 AND entity_id = $2::uuid AND job_type = $3 AND status = 'processing'
                 """,
                 job_data["entity_type"],
                 job_data["entity_id"],

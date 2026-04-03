@@ -50,7 +50,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const semanticIds = sidecarResult.items.map((i) => i.entity_id);
   const semanticNotes = semanticIds.length > 0
     ? await db.note.findMany({
-        where: { id: { in: semanticIds }, deletedAt: null },
+        where: { id: { in: semanticIds }, userId: user.id!, deletedAt: null },
         select: { id: true, title: true, contentPlain: true },
       })
     : [];
@@ -60,7 +60,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .map((i) => i.entity_id);
   const journalEntries = semanticEntries.length > 0
     ? await db.journalEntry.findMany({
-        where: { id: { in: semanticEntries }, deletedAt: null },
+        where: { id: { in: semanticEntries }, userId: user.id!, deletedAt: null },
         select: { id: true, date: true, contentPlain: true },
       })
     : [];
