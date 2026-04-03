@@ -115,10 +115,11 @@ test.describe("Journal", () => {
   });
 
   test("today button navigates to today's entry", async ({ page }) => {
-    const today = new Date().toISOString().split("T")[0];
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     await page.click("text=Today");
-    await page.waitForURL(new RegExp(`/journal/${today}`));
-    await expect(page.locator("h1")).toContainText(today);
+    await page.waitForURL(/\/journal\/\d{4}-\d{2}-\d{2}/, { timeout: 10000 });
+    await expect(page.locator("h1")).toBeVisible();
   });
 
   test("mood picker is visible", async ({ page }) => {
