@@ -25,6 +25,10 @@ cd MySecondBrain
 cp .env.example .env
 # Edit .env — add your ANTHROPIC_API_KEY for cloud AI features
 
+# Pull required Ollama models (needed for embeddings and local AI)
+ollama pull nomic-embed-text   # required — powers semantic search and RAG
+ollama pull llama3.1:8b        # default local chat model
+
 # Start everything
 docker-compose up -d
 
@@ -72,7 +76,7 @@ Register an account at `/register`, then start creating notes.
 - Backlinks panel (collapsible, shows notes linking to current note)
 - Trash with restore (soft deletes), Empty Trash button, and per-item permanent delete
 - **Data export** — download full knowledge base as JSON from `/export` (notes, journal, tags, links, templates)
-- AI chat history (persisted conversations)
+- AI chat history (persisted conversations) with per-conversation delete (trash icon) and **Clear All** bulk delete
 - Journal streak tracking with calendar heatmap
 - Command palette (`Ctrl+K` / `Cmd+K`)
 - Keyboard shortcuts (`N` notes, `J` journal, `/` search, `?` help)
@@ -101,7 +105,7 @@ Register an account at `/register`, then start creating notes.
 | File Storage | MinIO (S3-compatible) |
 | AI Sidecar | Python, FastAPI |
 | AI (cloud) | Claude API (Anthropic) |
-| AI (local) | Ollama (llama3, nomic-embed-text) |
+| AI (local) | Ollama (llama3.1:8b, nomic-embed-text) |
 | Auth | NextAuth.js v5 |
 | Testing | Vitest, Playwright |
 
@@ -189,7 +193,7 @@ OpenAI-compatible provider credentials (base URL, API key, model) are configured
 
 Second Brain is designed for **self-hosting** via Docker Compose. It requires Node.js, PostgreSQL, Redis, and MinIO — it cannot run on GitHub Pages or static hosting.
 
-**Recommended:** Hetzner CPX31 (~$8/month) — 4 vCPUs, 8 GB RAM, 160 GB SSD. Enough for the full stack plus Ollama running `llama3` for local AI.
+**Recommended:** Hetzner CPX31 (~$8/month) — 4 vCPUs, 8 GB RAM, 160 GB SSD. Enough for the full stack plus Ollama running `llama3.1:8b` for local AI.
 
 **Quick deploy on a VPS:**
 

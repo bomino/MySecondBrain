@@ -20,7 +20,7 @@ docker-compose.yml      PostgreSQL + pgvector, Redis, MinIO, web, ai-sidecar, ai
 | Cache/Queue | Redis (ioredis) |
 | File Storage | MinIO (S3-compatible) |
 | AI (cloud) | Claude API via Anthropic SDK |
-| AI (local) | Ollama (llama3, nomic-embed-text) |
+| AI (local) | Ollama (llama3.1:8b, nomic-embed-text) |
 | AI Sidecar | Python, FastAPI, asyncpg, tiktoken |
 | Auth | NextAuth.js v5 (JWT strategy, basePath `/api/v1/auth`) |
 | Testing | Vitest (unit), Playwright (E2E) |
@@ -89,6 +89,14 @@ All sidecar routes accept an optional `config` dict for per-request overrides of
 #### OpenAI-compatible generation
 
 `llm.py` exposes `_openai_compatible_generate()` which is invoked by `_cloud_generate()` when `cloud_provider` is set to `openai_compatible` in user settings. This enables any OpenAI API-compatible service (OpenAI, Groq, Together AI, Mistral, vLLM, LM Studio, etc.).
+
+#### Embedding storage format
+
+Embeddings must be stored as numpy arrays (`np.array(embedding, dtype=np.float32)`) via pgvector's numpy support. Storing embeddings as Python strings (`str(embedding)`) produces an invalid pgvector format and silently breaks the entire AI pipeline (semantic search, RAG chat, related notes). The `entity_id` field returned by asyncpg is a UUID object — always serialize to `str(entity_id)` before returning in Pydantic responses.
+
+#### Cloud fallback behavior
+
+In `hybrid` routing mode with no `ANTHROPIC_API_KEY` set, non-sensitive requests fall back to Ollama instead of returning an error. The web service passes empty strings for unset config fields so the sidecar uses its own environment variable defaults (not `localhost` overrides from the web container). Default local chat model is `llama3.1:8b`.
 
 #### Auto-tag pipeline
 1. Note/journal entry saved → API enqueues `auto-tag` job in Redis
@@ -167,6 +175,7 @@ docker-compose up -d --build web
 | GET | `/api/v1/ai/suggestions/[id]` | Fetch a specific tag suggestion |
 | PUT | `/api/v1/ai/suggestions/[id]` | Accept a tag suggestion |
 | DELETE | `/api/v1/ai/suggestions/[id]` | Dismiss a tag suggestion |
+| DELETE | `/api/v1/ai/conversations` | Bulk delete all conversations for the authenticated user |
 
 ### Other key routes
 | Method | Route | Purpose |

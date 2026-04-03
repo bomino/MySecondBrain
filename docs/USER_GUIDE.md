@@ -21,7 +21,7 @@ A personal knowledge OS for notes, journal, and AI-assisted thinking. This guide
 13. [Deployment](#13-deployment)
 14. [Troubleshooting](#14-troubleshooting)
 
-**New in recent updates:** [Auto-tag suggestions](#auto-tagging), [Related Notes panel](#related-notes-panel), [AI Writing Assistant](#ai-writing-assistant), [Daily Digest](#daily-digest), [AI status indicator](#ai-status-indicator), [Settings overhaul](#10-settings) (profile, editor preferences, OpenAI-compatible provider, danger zone), [Data Export](#exporting-your-knowledge-base), [Empty Trash](#trash-and-restore)
+**New in recent updates:** [Auto-tag suggestions](#auto-tagging), [Related Notes panel](#related-notes-panel), [AI Writing Assistant](#ai-writing-assistant), [Daily Digest](#daily-digest), [AI status indicator](#ai-status-indicator), [Settings overhaul](#10-settings) (profile, editor preferences, OpenAI-compatible provider, danger zone), [Data Export](#exporting-your-knowledge-base), [Empty Trash](#trash-and-restore), [Chat history management](#chat-history-management) (delete individual conversations, clear all)
 
 ---
 
@@ -325,6 +325,13 @@ The AI Chat panel is accessible from the sidebar or by clicking the chat icon. I
 
 **Conversation history:** past conversations are saved to the database. The left side of the chat panel lists previous conversations — click any to reload it. Click **New Chat** to start a fresh conversation.
 
+### Chat history management
+
+You can delete individual conversations or clear all history from the chat panel sidebar:
+
+- **Delete a single conversation** — hover over any conversation in the left panel and click the **trash icon** that appears. A confirmation dialog appears before deletion. Deleting a conversation also removes all its messages.
+- **Clear all conversations** — click the **Clear All (N)** button at the top of the conversation list, where N is the total conversation count. A confirmation dialog appears before the bulk delete. This removes all conversation history permanently.
+
 Type a question in natural language. The system:
 
 1. Embeds your question
@@ -418,16 +425,18 @@ Content with a stale or pending embedding shows an "AI index updating" indicator
 
 ### Local model requirements
 
-For local AI processing (sensitive content), Ollama must be running with these models pulled:
+For local AI processing (sensitive content and auto-tagging fallback), Ollama must be running with these models pulled:
 
 ```bash
-ollama pull nomic-embed-text   # ~500MB — embeddings
-ollama pull llama3             # ~4.7GB — chat and summarization
+ollama pull nomic-embed-text   # ~500MB — required for embeddings (all content)
+ollama pull llama3.1:8b        # ~4.7GB — chat, summarization, and auto-tagging
 ```
 
-Total: approximately 6GB of RAM/VRAM for simultaneous operation. If your machine doesn't have enough memory, run only the embedding model and accept degraded chat quality.
+`nomic-embed-text` is required for the entire AI pipeline. Without it, semantic search, RAG chat, Related Notes, and auto-tagging will not work. `llama3.1:8b` is the default chat model — earlier versions of the stack used `llama3` but `llama3.1:8b` better matches what is commonly installed. Any compatible model can be substituted by changing `chat_model_local` in the sidecar config.
 
-If Ollama is not running, non-sensitive content continues processing via Claude. Sensitive content queues and processes when Ollama comes back online. The app shows an in-app notification when sensitive processing is delayed.
+Total: approximately 6 GB of RAM/VRAM for simultaneous operation. If your machine doesn't have enough memory, run only the embedding model and accept degraded chat quality.
+
+If Ollama is not running, non-sensitive content continues processing via Claude (in `hybrid` mode). Sensitive content queues and processes when Ollama comes back online. When no cloud API key is configured, the sidecar falls back to Ollama for non-sensitive requests as well rather than returning an error. The app shows an in-app notification when sensitive processing is delayed.
 
 ---
 
@@ -693,8 +702,8 @@ OLLAMA_BASE_URL=http://ollama:11434
 Pull the required models before starting the stack:
 
 ```bash
-ollama pull nomic-embed-text
-ollama pull llama3
+ollama pull nomic-embed-text   # required for embeddings
+ollama pull llama3.1:8b        # default chat/summarization model
 ```
 
 ### Running without a Claude API key
@@ -881,7 +890,7 @@ The AI sidecar handles cloud AI (Claude / OpenAI-compatible). For local AI proce
 # On the VPS
 curl -fsSL https://ollama.ai/install.sh | sh
 ollama pull nomic-embed-text
-ollama pull llama3
+ollama pull llama3.1:8b
 ```
 
 Set `OLLAMA_BASE_URL=http://host.docker.internal:11434` in `.env` if Ollama runs on the host (outside Docker).
@@ -940,10 +949,23 @@ This means Ollama is not reachable. Check:
 
 ```bash
 ollama pull nomic-embed-text
-ollama pull llama3
+ollama pull llama3.1:8b
 ```
 
 If running Ollama on the host and the app in Docker, use `http://host.docker.internal:11434` as the `OLLAMA_BASE_URL`.
+
+### AI Chat returns errors
+
+If the chat panel returns an error immediately after sending a message:
+
+1. **Verify Ollama is running** — `ollama list` should show installed models.
+2. **Verify required models are pulled** — you need both `nomic-embed-text` (for embedding your question) and `llama3.1:8b` (or your configured chat model) for a response:
+   ```bash
+   ollama pull nomic-embed-text
+   ollama pull llama3.1:8b
+   ```
+3. **Check the AI status dot** — if the dot next to AI Chat in the sidebar is red, the sidecar is unreachable. Check `docker-compose logs ai-sidecar`.
+4. **No API key in hybrid mode** — if `ANTHROPIC_API_KEY` is not set, the sidecar falls back to Ollama for non-sensitive requests. Ensure Ollama is running and models are installed.
 
 ### Chat returns empty or poor answers
 
