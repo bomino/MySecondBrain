@@ -10,6 +10,8 @@ import { useTags } from "@/hooks/use-tags";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BacklinksPanel } from "@/components/notes/backlinks-panel";
+import { RelatedNotesPanel } from "@/components/notes/related-notes";
+import { TagSuggestions } from "@/components/notes/tag-suggestions";
 
 export default function NoteEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -174,6 +176,8 @@ export default function NoteEditorPage() {
         </button>
       </div>
 
+      <TagSuggestions noteId={id} />
+
       <input
         type="text"
         value={title}
@@ -192,6 +196,7 @@ export default function NoteEditorPage() {
       />
 
       <BacklinksPanel noteId={id} />
+      <RelatedNotesPanel noteId={id} />
 
       <ConfirmDialog
         open={showDelete}
