@@ -28,6 +28,10 @@ export default function SettingsPage() {
     chatModelCloud: "",
     chatModelLocal: "",
     embeddingModel: "",
+    cloudProvider: "anthropic",
+    openaiBaseUrl: "https://api.openai.com",
+    openaiApiKey: "",
+    openaiModel: "gpt-4o",
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [aiLoaded, setAiLoaded] = useState(false);
@@ -75,6 +79,10 @@ export default function SettingsPage() {
       chatModelCloud: aiSettings.chatModelCloud,
       chatModelLocal: aiSettings.chatModelLocal,
       embeddingModel: aiSettings.embeddingModel,
+      cloudProvider: aiSettings.cloudProvider ?? "anthropic",
+      openaiBaseUrl: aiSettings.openaiBaseUrl ?? "https://api.openai.com",
+      openaiApiKey: "",
+      openaiModel: aiSettings.openaiModel ?? "gpt-4o",
     });
     setAiLoaded(true);
   }
@@ -345,29 +353,104 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>
-              Anthropic API Key{" "}
-              {aiSettings?.hasEnvApiKey && !aiSettings?.hasApiKeyOverride && (
-                <span style={{ color: "var(--text-faint)" }}>(from .env)</span>
-              )}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type={showApiKey ? "text" : "password"}
-                value={aiForm.anthropicApiKey}
-                onChange={(e) => setAiForm((f) => ({ ...f, anthropicApiKey: e.target.value }))}
-                placeholder={aiSettings?.anthropicApiKey || "sk-ant-..."}
-                className="flex-1 rounded-lg px-3 py-2 text-sm input-base"
-              />
-              <button
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="rounded-lg px-2 btn-surface"
-                aria-label={showApiKey ? "Hide API key" : "Show API key"}
-              >
-                {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
+            <label className="mb-2 block text-xs" style={{ color: "var(--text-muted)" }}>Cloud Provider</label>
+            <div className="flex gap-1">
+              {[
+                { value: "anthropic", label: "Anthropic (Claude)" },
+                { value: "openai", label: "OpenAI Compatible" },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setAiForm((f) => ({ ...f, cloudProvider: value }))}
+                  className="flex-1 rounded-lg py-2 text-xs font-medium transition-all duration-150"
+                  style={{
+                    backgroundColor: aiForm.cloudProvider === value ? "var(--accent-muted)" : "var(--surface)",
+                    color: aiForm.cloudProvider === value ? "var(--accent-light)" : "var(--text-secondary)",
+                    border: `1px solid ${aiForm.cloudProvider === value ? "rgba(217,119,6,0.3)" : "var(--border)"}`,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
+
+          {aiForm.cloudProvider === "openai" ? (
+            <>
+              <div>
+                <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>
+                  Base URL
+                  <span className="ml-2 text-[10px]" style={{ color: "var(--text-faint)" }}>Presets:</span>
+                  {[
+                    { label: "OpenAI", url: "https://api.openai.com" },
+                    { label: "Groq", url: "https://api.groq.com/openai" },
+                    { label: "Together", url: "https://api.together.xyz" },
+                  ].map(({ label, url }) => (
+                    <button
+                      key={label}
+                      onClick={() => setAiForm((f) => ({ ...f, openaiBaseUrl: url }))}
+                      className="ml-1 rounded px-1.5 py-0.5 text-[10px] transition-colors duration-100"
+                      style={{ color: "var(--accent)", backgroundColor: "var(--accent-muted)" }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </label>
+                <input
+                  type="text"
+                  value={aiForm.openaiBaseUrl}
+                  onChange={(e) => setAiForm((f) => ({ ...f, openaiBaseUrl: e.target.value }))}
+                  placeholder="https://api.openai.com"
+                  className="w-full rounded-lg px-3 py-2 text-sm input-base"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>API Key</label>
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  value={aiForm.openaiApiKey}
+                  onChange={(e) => setAiForm((f) => ({ ...f, openaiApiKey: e.target.value }))}
+                  placeholder={aiSettings?.openaiApiKey || "sk-..."}
+                  className="w-full rounded-lg px-3 py-2 text-sm input-base"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Model</label>
+                <input
+                  type="text"
+                  value={aiForm.openaiModel}
+                  onChange={(e) => setAiForm((f) => ({ ...f, openaiModel: e.target.value }))}
+                  placeholder="gpt-4o"
+                  className="w-full rounded-lg px-3 py-2 text-sm input-base"
+                />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>
+                Anthropic API Key{" "}
+                {aiSettings?.hasEnvApiKey && !aiSettings?.hasApiKeyOverride && (
+                  <span style={{ color: "var(--text-faint)" }}>(from .env)</span>
+                )}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  value={aiForm.anthropicApiKey}
+                  onChange={(e) => setAiForm((f) => ({ ...f, anthropicApiKey: e.target.value }))}
+                  placeholder={aiSettings?.anthropicApiKey || "sk-ant-..."}
+                  className="flex-1 rounded-lg px-3 py-2 text-sm input-base"
+                />
+                <button
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="rounded-lg px-2 btn-surface"
+                  aria-label={showApiKey ? "Hide API key" : "Show API key"}
+                >
+                  {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-xs" style={{ color: "var(--text-muted)" }}>Ollama URL</label>
@@ -420,6 +503,10 @@ export default function SettingsPage() {
                 if (aiForm.chatModelCloud) data.chatModelCloud = aiForm.chatModelCloud;
                 if (aiForm.chatModelLocal) data.chatModelLocal = aiForm.chatModelLocal;
                 if (aiForm.embeddingModel) data.embeddingModel = aiForm.embeddingModel;
+                if (aiForm.cloudProvider) data.cloudProvider = aiForm.cloudProvider;
+                if (aiForm.openaiBaseUrl) data.openaiBaseUrl = aiForm.openaiBaseUrl;
+                if (aiForm.openaiApiKey) data.openaiApiKey = aiForm.openaiApiKey;
+                if (aiForm.openaiModel) data.openaiModel = aiForm.openaiModel;
                 updateSettings.mutate(data);
               }}
               className="rounded-lg px-6 py-2 text-sm btn-accent"
@@ -435,6 +522,10 @@ export default function SettingsPage() {
                   chatModelCloud: "",
                   chatModelLocal: "",
                   embeddingModel: "",
+                  cloudProvider: "",
+                  openaiBaseUrl: "",
+                  openaiApiKey: "",
+                  openaiModel: "",
                 });
                 setAiLoaded(false);
               }}

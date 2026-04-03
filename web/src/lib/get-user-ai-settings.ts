@@ -7,6 +7,10 @@ export interface AIConfig {
   chatModelCloud: string;
   chatModelLocal: string;
   embeddingModel: string;
+  cloudProvider: string;
+  openaiBaseUrl: string;
+  openaiApiKey: string;
+  openaiModel: string;
 }
 
 export async function getUserSettings(userId: string): Promise<Record<string, unknown>> {
@@ -32,5 +36,9 @@ export async function getUserAIConfig(userId: string): Promise<AIConfig> {
     chatModelCloud: s.chatModelCloud ?? "claude-sonnet-4-6-20250514",
     chatModelLocal: s.chatModelLocal ?? "llama3",
     embeddingModel: s.embeddingModel ?? "nomic-embed-text",
+    cloudProvider: s.cloudProvider ?? "anthropic",
+    openaiBaseUrl: s.openaiBaseUrl ?? "https://api.openai.com",
+    openaiApiKey: s.openaiApiKey ?? "",
+    openaiModel: s.openaiModel ?? "gpt-4o",
   };
 }

@@ -41,6 +41,10 @@ export async function POST(req: NextRequest) {
       ollama_url: aiConfig.ollamaBaseUrl,
       chat_model_cloud: aiConfig.chatModelCloud,
       chat_model_local: aiConfig.chatModelLocal,
+      cloud_provider: aiConfig.cloudProvider,
+      openai_base_url: aiConfig.openaiBaseUrl,
+      openai_api_key: aiConfig.openaiApiKey,
+      openai_model: aiConfig.openaiModel,
     },
   });
 

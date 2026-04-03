@@ -8,8 +8,13 @@ interface AppSettings {
   chatModelCloud: string;
   chatModelLocal: string;
   embeddingModel: string;
+  cloudProvider: string;
+  openaiBaseUrl: string;
+  openaiApiKey: string;
+  openaiModel: string;
   hasApiKeyOverride: boolean;
   hasEnvApiKey: boolean;
+  hasOpenaiKeyOverride: boolean;
   autoTagEnabled: boolean;
   autoTagAutoApply: boolean;
   defaultNoteSensitive: boolean;
