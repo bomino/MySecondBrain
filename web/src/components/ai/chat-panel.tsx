@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Plus, MessageSquare } from "lucide-react";
+import { Send, Sparkles, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { useAIChat, useConversations } from "@/hooks/use-ai-chat";
 import { ChatMessage } from "./chat-message";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function ChatPanel() {
-  const { messages, isLoading, sendMessage, activeConversationId, loadConversation, startNewConversation } = useAIChat();
+  const { messages, isLoading, sendMessage, activeConversationId, loadConversation, startNewConversation, deleteConversation, clearAllConversations } = useAIChat();
   const { data: conversations } = useConversations();
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showClearAll, setShowClearAll] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -35,20 +38,41 @@ export function ChatPanel() {
         </div>
         <div className="flex flex-col gap-0.5 px-2 pb-2">
           {(conversations ?? []).map((c) => (
-            <button
+            <div
               key={c.id}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors duration-100 nav-item cursor-pointer"
               onClick={() => loadConversation(c.id)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs transition-colors duration-100 nav-item"
               style={{
                 color: activeConversationId === c.id ? "var(--accent-light)" : "var(--text-secondary)",
                 backgroundColor: activeConversationId === c.id ? "var(--accent-muted)" : "transparent",
               }}
             >
               <MessageSquare size={13} />
-              <span className="truncate">{c.title}</span>
-            </button>
+              <span className="flex-1 truncate">{c.title}</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setDeleteId(c.id); }}
+                className="rounded p-0.5 transition-colors duration-100"
+                style={{ color: "var(--text-faint)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--destructive)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-faint)")}
+                aria-label="Delete conversation"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
           ))}
         </div>
+        {(conversations ?? []).length > 0 && (
+          <div className="px-3 pb-2">
+            <button
+              onClick={() => setShowClearAll(true)}
+              className="w-full rounded-lg py-1.5 text-[10px] transition-colors duration-150"
+              style={{ color: "var(--destructive)" }}
+            >
+              Clear All ({(conversations ?? []).length})
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col">
@@ -119,6 +143,26 @@ export function ChatPanel() {
           </button>
         </form>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        title="Delete conversation"
+        description="This conversation and all its messages will be permanently deleted."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => { if (deleteId) deleteConversation(deleteId); setDeleteId(null); }}
+        onCancel={() => setDeleteId(null)}
+      />
+
+      <ConfirmDialog
+        open={showClearAll}
+        title="Clear all conversations"
+        description={`Permanently delete all ${(conversations ?? []).length} conversations? This cannot be undone.`}
+        confirmLabel="Clear All"
+        destructive
+        onConfirm={() => { clearAllConversations(); setShowClearAll(false); }}
+        onCancel={() => setShowClearAll(false)}
+      />
     </div>
   );
 }

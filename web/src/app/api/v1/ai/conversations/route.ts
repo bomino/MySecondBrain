@@ -31,3 +31,17 @@ export async function POST(req: NextRequest) {
 
   return success(conversation, 201);
 }
+
+export async function DELETE(_req: NextRequest) {
+  let user;
+  try { user = await requireAuth(); } catch { return unauthorized(); }
+
+  const count = await db.chatConversation.count({ where: { userId: user.id! } });
+
+  await db.chatMessage.deleteMany({
+    where: { conversation: { userId: user.id! } },
+  });
+  await db.chatConversation.deleteMany({ where: { userId: user.id! } });
+
+  return success({ deleted: count });
+}

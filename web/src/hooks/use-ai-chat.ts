@@ -138,6 +138,32 @@ export function useAIChat() {
     setActiveConversationId(null);
   }, []);
 
+  const deleteConversation = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/v1/ai/conversations/${id}`, { method: "DELETE" });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      if (activeConversationId === id) {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+      toast("Conversation deleted", "success");
+    } catch {
+      toast("Failed to delete conversation", "error");
+    }
+  }, [activeConversationId, queryClient]);
+
+  const clearAllConversations = useCallback(async () => {
+    try {
+      await fetch("/api/v1/ai/conversations", { method: "DELETE" });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setActiveConversationId(null);
+      setMessages([]);
+      toast("All conversations cleared", "success");
+    } catch {
+      toast("Failed to clear conversations", "error");
+    }
+  }, [queryClient]);
+
   return {
     messages,
     isLoading,
@@ -146,5 +172,7 @@ export function useAIChat() {
     activeConversationId,
     loadConversation,
     startNewConversation,
+    deleteConversation,
+    clearAllConversations,
   };
 }
