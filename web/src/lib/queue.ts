@@ -15,10 +15,8 @@ export async function enqueueAIJob(
   payload: Record<string, unknown>
 ) {
   const debounceKey = `${DEBOUNCE_PREFIX}${entityType}:${entityId}:${jobType}`;
-  const existing = await redis.get(debounceKey);
-  if (existing) return;
-
-  await redis.setex(debounceKey, DEBOUNCE_SECONDS, "1");
+  const set = await redis.set(debounceKey, "1", "EX", DEBOUNCE_SECONDS, "NX");
+  if (!set) return;
 
   await db.aIJobLog.create({
     data: {

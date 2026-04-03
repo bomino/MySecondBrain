@@ -24,7 +24,7 @@ async def process_job(job_data: dict):
         import httpx
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                "http://localhost:8000/auto-tag",
+                "http://ai-sidecar:8000/auto-tag",
                 json={
                     "text": job_data.get("text", ""),
                     "is_sensitive": job_data.get("is_sensitive", False),

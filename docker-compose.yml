@@ -51,7 +51,7 @@ services:
       S3_SECRET_KEY: minioadmin
       S3_BUCKET: secondbrain
       AI_SIDECAR_URL: http://ai-sidecar:8000
-      NEXTAUTH_SECRET: dev-secret-change-in-prod
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-before-deploy}
       NEXTAUTH_URL: http://localhost:3001
     depends_on:
       postgres:
@@ -67,8 +67,8 @@ services:
     build:
       context: ./ai-sidecar
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       DATABASE_URL: postgresql://brain:brain@postgres:5432/secondbrain
       REDIS_URL: redis://redis:6379

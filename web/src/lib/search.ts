@@ -15,12 +15,6 @@ export async function fullTextSearch(
   query: string,
   limit = 20
 ): Promise<SearchResult[]> {
-  const tsQuery = query
-    .trim()
-    .split(/\s+/)
-    .map((w) => `${w}:*`)
-    .join(" & ");
-
   const results = await db.$queryRawUnsafe<SearchResult[]>(
     `
     SELECT * FROM (
@@ -30,11 +24,11 @@ export async function fullTextSearch(
         title,
         LEFT(content_plain, 200) as snippet,
         updated_at as "updatedAt",
-        ts_rank(search_vector, to_tsquery('english', $1)) as rank
+        ts_rank(search_vector, websearch_to_tsquery('english', $1)) as rank
       FROM notes
       WHERE user_id = $2::uuid
         AND deleted_at IS NULL
-        AND search_vector @@ to_tsquery('english', $1)
+        AND search_vector @@ websearch_to_tsquery('english', $1)
 
       UNION ALL
 
@@ -44,16 +38,16 @@ export async function fullTextSearch(
         TO_CHAR(date, 'YYYY-MM-DD') as title,
         LEFT(content_plain, 200) as snippet,
         updated_at as "updatedAt",
-        ts_rank(search_vector, to_tsquery('english', $1)) as rank
+        ts_rank(search_vector, websearch_to_tsquery('english', $1)) as rank
       FROM journal_entries
       WHERE user_id = $2::uuid
         AND deleted_at IS NULL
-        AND search_vector @@ to_tsquery('english', $1)
+        AND search_vector @@ websearch_to_tsquery('english', $1)
     ) results
     ORDER BY rank DESC
     LIMIT $3
     `,
-    tsQuery,
+    query.trim(),
     userId,
     limit
   );
@@ -78,12 +72,18 @@ export async function semanticSearch(
     SELECT ec.entity_type, ec.entity_id, ec.chunk_text,
            1 - (ec.embedding <=> $1::vector) as similarity
     FROM embedding_chunks ec
+    JOIN (
+      SELECT id FROM notes WHERE user_id = $3::uuid AND deleted_at IS NULL
+      UNION ALL
+      SELECT id FROM journal_entries WHERE user_id = $3::uuid AND deleted_at IS NULL
+    ) owned ON ec.entity_id = owned.id
     WHERE ec.entity_type IN ('note', 'journal_entry')
     ORDER BY ec.embedding <=> $1::vector
     LIMIT $2
     `,
     JSON.stringify(embedding.embedding),
-    limit
+    limit,
+    userId
   );
 
   const noteIds = results.filter((r) => r.entity_type === "note").map((r) => r.entity_id);
