@@ -12,14 +12,16 @@ A personal knowledge OS for notes, journal, and AI-assisted thinking. This guide
 4. [Search](#4-search)
 5. [AI Features](#5-ai-features)
 6. [Importing Data](#6-importing-data)
-7. [Web Clipper](#7-web-clipper)
-8. [Keyboard Shortcuts](#8-keyboard-shortcuts)
-9. [Configuration](#9-configuration)
-10. [Settings](#10-settings)
-11. [Mobile and PWA](#11-mobile-and-pwa)
-12. [Troubleshooting](#12-troubleshooting)
+7. [Exporting Your Knowledge Base](#7-exporting-your-knowledge-base)
+8. [Web Clipper](#8-web-clipper)
+9. [Keyboard Shortcuts](#9-keyboard-shortcuts)
+10. [Configuration](#10-configuration)
+11. [Settings](#11-settings)
+12. [Mobile and PWA](#12-mobile-and-pwa)
+13. [Deployment](#13-deployment)
+14. [Troubleshooting](#14-troubleshooting)
 
-**New in recent updates:** [Auto-tag suggestions](#auto-tagging), [Related Notes panel](#related-notes-panel), [AI Writing Assistant](#ai-writing-assistant), [Daily Digest](#daily-digest), [AI status indicator](#ai-status-indicator)
+**New in recent updates:** [Auto-tag suggestions](#auto-tagging), [Related Notes panel](#related-notes-panel), [AI Writing Assistant](#ai-writing-assistant), [Daily Digest](#daily-digest), [AI status indicator](#ai-status-indicator), [Settings overhaul](#10-settings) (profile, editor preferences, OpenAI-compatible provider, danger zone), [Data Export](#exporting-your-knowledge-base), [Empty Trash](#trash-and-restore)
 
 ---
 
@@ -111,7 +113,8 @@ Deleting a note moves it to the trash instead of permanently removing it.
 - Click **Delete** on any note. A confirmation dialog appears — confirm to move the note to trash.
 - Deleted notes are accessible from the **Trash** link in the sidebar (`/trash`).
 - To restore a note, open Trash and click **Restore** next to the note. It returns to the notes list with all its original content and tags.
-- To permanently delete, click **Delete permanently** in the Trash view. This cannot be undone.
+- To permanently delete a single item, click the **X** button next to it in Trash. A confirmation dialog appears. This cannot be undone and removes all associated embeddings, tags, and links.
+- To permanently delete everything in Trash at once, click the **Empty Trash** button at the top of the Trash view. A confirmation dialog appears. All trashed items are deleted immediately with full cascade cleanup (embeddings, tag assignments, note links).
 
 ### Folders and hierarchy
 
@@ -517,7 +520,35 @@ After import, allow a few minutes for all embeddings to generate before relying 
 
 ---
 
-## 7. Web Clipper
+## 7. Exporting Your Knowledge Base
+
+The export page at `/export` lets you download your entire knowledge base as a single JSON file. Access it from the **Export** link in the sidebar.
+
+### What is included
+
+The export file is a JSON object containing:
+
+| Key | Contents |
+|-----|----------|
+| `notes` | All notes (title, content, tags, sensitivity flag, timestamps) |
+| `journalEntries` | All journal entries (date, content, mood, energy, sensitivity flag) |
+| `tags` | All tag definitions (name, color) |
+| `tagAssignments` | Tag-to-content mappings |
+| `noteLinks` | All wiki-link connections between notes |
+| `templates` | All saved note templates |
+
+Trashed items are not included in the export.
+
+### Downloading
+
+1. Navigate to `/export` or click **Export** in the sidebar.
+2. Click **Download Export**. The file downloads immediately as `second-brain-export-<date>.json`.
+
+The export is a complete, human-readable snapshot of your knowledge base. It can be used for backup, migration, or offline archiving.
+
+---
+
+## 8. Web Clipper
 
 The web clipper saves a URL as a note. Use it to capture articles, documentation pages, or any web content you want to reference later.
 
@@ -565,7 +596,7 @@ Because the app runs on localhost and uses HTTP-only cookies, `credentials:'incl
 
 ---
 
-## 8. Keyboard Shortcuts
+## 9. Keyboard Shortcuts
 
 ### Command palette
 
@@ -611,7 +642,7 @@ These single-key shortcuts are active when focus is not inside a text input.
 
 ---
 
-## 9. Configuration
+## 10. Configuration
 
 All configuration is through environment variables in `.env` (copied from `.env.example`).
 
@@ -676,7 +707,7 @@ Set `AI_ROUTING_MODE=cloud` and provide `ANTHROPIC_API_KEY`. All AI features use
 
 ---
 
-## 10. Settings
+## 11. Settings
 
 The Settings page is at `/settings`. Access it from the gear icon in the sidebar.
 
@@ -697,6 +728,88 @@ Tags can also be created inline from the note or journal entry header — type a
 - To save an existing note as a template, open the note and choose **Save as template** from the editor toolbar's three-dot menu.
 - Delete a template from the templates list — this does not affect notes already created from it.
 
+### Profile
+
+**Settings → Profile** lets you manage your account identity.
+
+- **Change email** — enter a new email address. The system checks uniqueness before saving. You will be signed out after changing your email.
+- **Change password** — requires entering your current password for verification, then a new password (confirmed twice).
+- **Account created** — your account creation date is shown for reference.
+
+### Editor
+
+**Settings → Editor** controls how the note and journal editor looks and feels.
+
+- **Font size** — drag the slider to set font size between 12 px and 22 px. The default is 16 px.
+- **Line spacing** — drag the slider to set line height between 1.2 and 2.2. The default is 1.6.
+
+Both settings are saved to `localStorage` immediately and take effect in the editor without a page reload.
+
+### Preferences
+
+**Settings → Preferences** contains behavior toggles:
+
+| Toggle | Default | Description |
+|--------|---------|-------------|
+| Auto-tag on save | On | Queue AI tagging job after each note save |
+| Auto-apply tags | Off | Automatically apply tag suggestions without showing the amber banner |
+| Default note sensitivity | Off (non-sensitive) | New notes start sensitive if enabled |
+| Toast notifications | On | Show success/error toasts on all actions |
+| Default search mode | Combined | Initial mode when opening the search page (Full-text / Semantic / Combined) |
+
+Changes take effect immediately.
+
+### AI Configuration
+
+**Settings → AI Configuration** controls which AI provider is used for cloud processing.
+
+#### Local Model
+
+The local model section shows the Ollama configuration derived from environment variables. This is read-only in the UI — change it in `.env`.
+
+#### Cloud Provider
+
+Choose between two cloud provider options:
+
+**Anthropic (default)** — uses the `ANTHROPIC_API_KEY` environment variable. No additional configuration needed in the UI.
+
+**OpenAI Compatible** — enables any OpenAI-compatible API. When selected, three fields appear:
+
+| Field | Description |
+|-------|-------------|
+| Base URL | API endpoint. Use the preset buttons for common providers or enter a custom URL. |
+| API Key | Your API key for the chosen provider. |
+| Model Name | The model to use (e.g., `gpt-4o`, `llama3-70b-8192`, `mistral-7b-instruct`). |
+
+Preset buttons auto-fill the Base URL:
+
+| Preset | URL |
+|--------|-----|
+| OpenAI | `https://api.openai.com/v1` |
+| Groq | `https://api.groq.com/openai/v1` |
+| Together AI | `https://api.together.xyz/v1` |
+
+Any provider that implements the OpenAI API format is supported (Mistral, Fireworks, local vLLM, LM Studio, etc.).
+
+Settings are saved to the database and passed to the sidecar per-request, so you can switch providers without restarting the stack.
+
+### Danger Zone
+
+**Settings → Danger Zone** contains irreversible account actions.
+
+**Delete Account** permanently removes your account and all associated data:
+- All notes, journal entries, tags, templates, and note links
+- All embeddings and AI processing history
+- All tag suggestions and conversation history
+- Your user record
+
+To delete your account:
+1. Click **Delete Account**.
+2. Enter your current password in the confirmation dialog.
+3. Click **Confirm Delete**.
+
+The deletion cascades across all tables. This cannot be undone. Export your data first if you want a backup (see [Exporting Your Knowledge Base](#7-exporting-your-knowledge-base)).
+
 ### Theme
 
 A **Dark / Light / System** toggle is in the sidebar (bottom of the navigation). **System** follows your OS appearance setting.
@@ -707,7 +820,7 @@ The **Log Out** button (LogOut icon) is in the sidebar user section at the botto
 
 ---
 
-## 11. Mobile and PWA
+## 12. Mobile and PWA
 
 ### Mobile layout
 
@@ -734,7 +847,58 @@ All create, update, and delete operations show a brief toast notification in the
 
 ---
 
-## 12. Troubleshooting
+## 13. Deployment
+
+Second Brain is designed for **self-hosting**. It requires a server-side runtime (Node.js, PostgreSQL, Redis) and cannot be deployed to static hosting platforms like GitHub Pages or Netlify's free CDN tier.
+
+### Recommended: VPS with Docker Compose
+
+The simplest production setup is a single VPS running Docker Compose.
+
+**Recommended specs:**
+- 4 vCPUs, 8 GB RAM — sufficient for the full stack including the AI sidecar
+- 40+ GB disk — for PostgreSQL, MinIO object storage, and embedding data
+
+**Recommended provider:** Hetzner CPX31 (~$8/month as of 2026). Other providers (DigitalOcean, Linode, Vultr) work equally well.
+
+**Steps:**
+
+1. Provision the VPS and install Docker + Docker Compose.
+2. Clone the repo onto the server.
+3. Copy `.env.example` to `.env` and fill in production values:
+   - Generate a strong `NEXTAUTH_SECRET` (e.g., `openssl rand -hex 32`)
+   - Set `NEXTAUTH_URL` to your public domain or IP
+   - Add your `ANTHROPIC_API_KEY` if using cloud AI
+4. Set up a reverse proxy (nginx or Caddy) in front of port 3001 for TLS.
+5. Start the stack: `docker-compose up -d`
+6. Run migrations: `docker-compose exec next-app npx prisma migrate deploy`
+
+### Ollama on VPS
+
+The AI sidecar handles cloud AI (Claude / OpenAI-compatible). For local AI processing of sensitive content, Ollama must also run on the same server or a reachable host. On a 4-core/8 GB VPS, `llama3` runs acceptably for personal use.
+
+```bash
+# On the VPS
+curl -fsSL https://ollama.ai/install.sh | sh
+ollama pull nomic-embed-text
+ollama pull llama3
+```
+
+Set `OLLAMA_BASE_URL=http://host.docker.internal:11434` in `.env` if Ollama runs on the host (outside Docker).
+
+### What cannot run on GitHub Pages
+
+Second Brain requires:
+- A Node.js runtime (Next.js server-side rendering and API routes)
+- A running PostgreSQL database
+- A Redis instance
+- File storage (MinIO or S3)
+
+GitHub Pages serves only static files and has none of these. Use a VPS, Railway, Render, or Fly.io instead.
+
+---
+
+## 14. Troubleshooting
 
 ### App is not accessible at localhost:3001
 

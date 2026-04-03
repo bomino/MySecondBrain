@@ -57,7 +57,7 @@ docker-compose.yml      PostgreSQL + pgvector, Redis, MinIO, web, ai-sidecar, ai
 - Date/time formatting: use `web/src/lib/date-utils.ts` for all display — renders in user's local timezone
 
 ### Sidebar Navigation (order, top to bottom)
-Notes, Journal, Search, Graph, Import, Trash, **AI Chat** (with status dot), **Digest** (Lightbulb icon), Today — then user section with theme toggle and **Log Out** button (LogOut icon)
+Notes, Journal, Search, Graph, Import, Export, Trash, **AI Chat** (with status dot), **Digest** (Lightbulb icon), Today — then user section with actual user email/initial, theme toggle, and **Log Out** button (LogOut icon)
 
 ### Logo Placement
 - Sidebar: `<h-14>` Agadez cross logo (`MyLogo.png`)
@@ -83,6 +83,12 @@ Notes, Journal, Search, Graph, Import, Trash, **AI Chat** (with status dot), **D
 | POST | `/related` | Semantic similarity search for related content |
 | POST | `/digest` | Generate daily digest (4 heuristics) |
 | POST | `/transform` | AI text transformation (improve/simplify/expand/summarize) |
+
+All sidecar routes accept an optional `config` dict for per-request overrides of `api_key`, `model`, and `base_url`. This is how user-configured cloud providers (Settings → AI Configuration) are applied without restarting the sidecar.
+
+#### OpenAI-compatible generation
+
+`llm.py` exposes `_openai_compatible_generate()` which is invoked by `_cloud_generate()` when `cloud_provider` is set to `openai_compatible` in user settings. This enables any OpenAI API-compatible service (OpenAI, Groq, Together AI, Mistral, vLLM, LM Studio, etc.).
 
 #### Auto-tag pipeline
 1. Note/journal entry saved → API enqueues `auto-tag` job in Redis
@@ -145,6 +151,9 @@ docker-compose up -d --build web
 - `Taggable` has no FK to Note/JournalEntry (polymorphic pattern). Tag lookups use separate `db.taggable.findMany()` queries.
 - `Note` model has `lastViewedAt DateTime?` — updated when a note is opened; used by the Digest's Forgotten Relevance heuristic.
 - `TagSuggestion` model tracks auto-tag pipeline output with a `status` field: `pending_review`, `accepted`, `dismissed`.
+- Permanent delete (notes and journal entries) cascades: `embedding_chunks` rows, `Taggable` tag assignments, `NoteLink` outbound and inbound links, and `TagSuggestion` rows. Soft-deleted items still have their embeddings intact until permanently deleted.
+- `UserSettings` table: one row per user, created on first `GET /api/v1/settings` call if absent. Stores preferences, AI provider config.
+- Sidebar displays actual user email and initial from session — not hardcoded.
 
 ## API Routes Reference
 
@@ -164,17 +173,64 @@ docker-compose up -d --build web
 |--------|-------|---------|
 | GET/POST | `/api/v1/notes` | Note list and creation |
 | GET/PUT/DELETE | `/api/v1/notes/[id]` | Note CRUD |
+| DELETE | `/api/v1/notes/[id]/permanent` | Permanent delete — cascades embeddings, tags, links |
+| DELETE | `/api/v1/notes/trash` | Empty trash — bulk permanent delete of all trashed notes |
 | GET/POST | `/api/v1/journal` | Journal entry list and creation |
-| GET/PUT/DELETE | `/api/v1/journal/[id]` | Journal entry CRUD |
+| GET/PUT/DELETE | `/api/v1/journal/[date]` | Journal entry CRUD (keyed by date string) |
+| DELETE | `/api/v1/journal/[date]/permanent` | Permanent delete of single journal entry |
 | POST | `/api/v1/ai/summarize/[type]` | Summarize note or journal entry |
 | GET/POST | `/api/v1/ai/conversations` | Chat conversation management |
 | GET/DELETE | `/api/v1/ai/conversations/[id]` | Specific conversation |
 | GET/POST | `/api/v1/templates` | Note templates |
+| GET/PUT | `/api/v1/settings` | User settings CRUD (preferences, editor config, AI provider) |
+| GET/PUT | `/api/v1/auth/profile` | Profile management (email, password, account info) |
+| POST | `/api/v1/auth/delete-account` | Account deletion with password re-entry; cascades all user data |
+| GET | `/api/v1/export` | Full knowledge base export as JSON (notes, journal, tags, links, templates) |
+
+## Settings Fields
+
+User settings are stored in a `UserSettings` database table (one row per user) and exposed via `GET/PUT /api/v1/settings`. Fields:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `autoTagEnabled` | boolean | true | Queue AI tagging job on note save |
+| `autoApplyTags` | boolean | false | Apply tag suggestions automatically |
+| `defaultNoteSensitivity` | boolean | false | New notes start sensitive |
+| `toastNotificationsEnabled` | boolean | true | Show toast notifications |
+| `defaultSearchMode` | string | `combined` | `full-text` / `semantic` / `combined` |
+| `cloudProvider` | string | `anthropic` | `anthropic` / `openai_compatible` |
+| `openaiCompatibleBaseUrl` | string | null | Base URL for OpenAI-compatible provider |
+| `openaiCompatibleApiKey` | string | null | API key for OpenAI-compatible provider |
+| `openaiCompatibleModel` | string | null | Model name for OpenAI-compatible provider |
+
+Editor preferences are stored in `localStorage` (not the database):
+- `editorFontSize` — integer 12–22, default 16
+- `editorLineSpacing` — float 1.2–2.2, default 1.6
+
+## Code Quality Milestones
+
+**Two-round code review (2026 Q1)** resolved 16 bugs across:
+- Sidecar port not exposed in `docker-compose.yml`
+- Search crash on regex special characters in query input
+- Cross-user data isolation missing in semantic search
+- Hardcoded `NEXTAUTH_SECRET` in production config
+- Worker Docker networking — sidecar unreachable from worker container
+- Job queue race condition in Redis `ai:jobs` processing
+- Cluster alerts leaking data across users
+- Worker job status tracking gaps
+- Chat title being overwritten on subsequent messages
+- Import plaintext extraction missing for some file encodings
+- Digest query performance (missing index)
+- Entity ownership verification missing on several endpoints
+- Related notes endpoint missing `userId` filter
+- Links endpoint missing `userId` filter
+- Search hook error handling on network failure
+- Sidebar hydration mismatch — "Today" link date computed server-side; fixed with `useEffect`
 
 ## Environment Variables
 
 See `.env.example` for all variables. Key ones:
 - `DATABASE_URL` — PostgreSQL connection string
-- `ANTHROPIC_API_KEY` — for cloud AI features
+- `ANTHROPIC_API_KEY` — for cloud AI features (Anthropic provider)
 - `AI_ROUTING_MODE` — `hybrid` (default), `local`, or `cloud`
-- `NEXTAUTH_SECRET` — session encryption key
+- `NEXTAUTH_SECRET` — session encryption key (must be changed from default in production)

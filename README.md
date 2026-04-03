@@ -55,7 +55,8 @@ Register an account at `/register`, then start creating notes.
 - **Daily Digest** (`/digest`) — four heuristics: Forgotten Relevance (30+ day old notes similar to recent work), On This Day (journal entries from same date in prior years), Orphan Detection (untagged+unlinked notes >14 days old), Cluster Alerts (3+ recent notes that semantically cluster but aren't linked)
 - **Related Notes panel** — per-note panel with Semantically Similar (pgvector cosine) and Mentioned in this note (title substring match) sections
 - **AI Status Indicator** — colored dot next to AI Chat in sidebar: green (ready), amber (processing), red (unavailable)
-- Sensitivity routing — `is_sensitive` flag controls local (Ollama) vs cloud (Claude) AI processing
+- **OpenAI-compatible provider** — switch cloud AI to any OpenAI API-compatible service (OpenAI, Groq, Together AI, Mistral, vLLM, and more) from Settings without restarting the stack
+- Sensitivity routing — `is_sensitive` flag controls local (Ollama) vs cloud (Claude/OpenAI-compatible) AI processing
 - Chunked embeddings (500 tokens, 50 overlap) for precise retrieval
 
 ### Organization
@@ -69,18 +70,23 @@ Register an account at `/register`, then start creating notes.
 - Auto-save with debounced indicator ("Saving..."/"Saved")
 - Word count in editor footer
 - Backlinks panel (collapsible, shows notes linking to current note)
-- Trash with restore (soft deletes)
+- Trash with restore (soft deletes), Empty Trash button, and per-item permanent delete
+- **Data export** — download full knowledge base as JSON from `/export` (notes, journal, tags, links, templates)
 - AI chat history (persisted conversations)
 - Journal streak tracking with calendar heatmap
 - Command palette (`Ctrl+K` / `Cmd+K`)
 - Keyboard shortcuts (`N` notes, `J` journal, `/` search, `?` help)
 - Dark/Light/System theme toggle
+- **Editor preferences** — font size (12–22 px) and line spacing (1.2–2.2) sliders, persisted to localStorage
+- **Profile management** — change email (uniqueness checked) and password from Settings
+- **Preference toggles** — auto-tag, auto-apply tags, default sensitivity, toast notifications, default search mode
 - Local timezone formatting for all dates and times
 - Custom Agadez cross logo in sidebar, login/register pages, favicon, and PWA manifest
+- Sidebar shows actual user email and initial (not hardcoded)
 - Logout button in sidebar user section
 - Mobile responsive (hamburger menu + bottom nav)
 - PWA installable
-- Toast notifications on all actions
+- Toast notifications on all actions (configurable)
 
 ## Tech Stack
 
@@ -171,10 +177,40 @@ Copy `.env.example` to `.env` and configure:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | Yes | Session encryption key |
-| `ANTHROPIC_API_KEY` | For cloud AI | Claude API key |
+| `NEXTAUTH_SECRET` | Yes | Session encryption key — **must be changed from default in production** |
+| `NEXTAUTH_URL` | Yes | App base URL (e.g., `https://brain.example.com`) |
+| `ANTHROPIC_API_KEY` | For Anthropic cloud AI | Claude API key |
 | `AI_ROUTING_MODE` | No | `hybrid` (default), `local`, or `cloud` |
 | `OLLAMA_BASE_URL` | For local AI | Ollama server URL |
+
+OpenAI-compatible provider credentials (base URL, API key, model) are configured per-user in **Settings → AI Configuration** and stored in the database — no env vars needed.
+
+## Deployment
+
+Second Brain is designed for **self-hosting** via Docker Compose. It requires Node.js, PostgreSQL, Redis, and MinIO — it cannot run on GitHub Pages or static hosting.
+
+**Recommended:** Hetzner CPX31 (~$8/month) — 4 vCPUs, 8 GB RAM, 160 GB SSD. Enough for the full stack plus Ollama running `llama3` for local AI.
+
+**Quick deploy on a VPS:**
+
+```bash
+# 1. Install Docker + Docker Compose on the VPS
+# 2. Clone and configure
+git clone https://github.com/bomino/MySecondBrain.git
+cd MySecondBrain
+cp .env.example .env
+# Set NEXTAUTH_SECRET (generate with: openssl rand -hex 32)
+# Set NEXTAUTH_URL to your domain
+# Add ANTHROPIC_API_KEY or configure OpenAI-compatible provider in Settings
+
+# 3. Start the stack
+docker-compose up -d
+
+# 4. Run migrations
+docker-compose exec next-app npx prisma migrate deploy
+```
+
+Put nginx or Caddy in front of port 3001 for TLS. See the [User Guide → Deployment](docs/USER_GUIDE.md#13-deployment) section for full instructions.
 
 ## Documentation
 
