@@ -62,6 +62,10 @@ async def _ollama_generate(prompt: str, system: str, config: dict | None = None)
 
 
 async def _cloud_generate(prompt: str, system: str, config: dict | None = None) -> str:
+    cloud_provider = (config or {}).get("cloud_provider", "anthropic")
+    if cloud_provider == "openai":
+        return await _openai_compatible_generate(prompt, system, config)
+
     api_key = (config or {}).get("api_key") or settings.anthropic_api_key
     model = (config or {}).get("chat_model_cloud") or settings.chat_model_cloud
     client = anthropic.AsyncAnthropic(api_key=api_key)
@@ -72,3 +76,29 @@ async def _cloud_generate(prompt: str, system: str, config: dict | None = None) 
         messages=[{"role": "user", "content": prompt}],
     )
     return message.content[0].text
+
+
+async def _openai_compatible_generate(prompt: str, system: str, config: dict | None = None) -> str:
+    base_url = (config or {}).get("openai_base_url") or settings.openai_base_url
+    api_key = (config or {}).get("openai_api_key") or settings.openai_api_key
+    model = (config or {}).get("openai_model") or settings.openai_model
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{base_url.rstrip('/')}/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 2048,
+            },
+            timeout=120.0,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
