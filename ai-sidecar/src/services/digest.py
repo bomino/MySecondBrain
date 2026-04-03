@@ -44,26 +44,29 @@ async def _forgotten_relevance(conn, user_id: str) -> list[dict]:
 
     rows = await conn.fetch(
         """
-        SELECT DISTINCT ON (n.id) n.id, n.title,
-               1 - (ec.embedding <=> $1::vector) as similarity
-        FROM notes n
-        JOIN embedding_chunks ec ON ec.entity_id = n.id AND ec.entity_type = 'note'
-        WHERE n.user_id = $2::uuid
-          AND n.deleted_at IS NULL
-          AND (n.last_viewed_at IS NULL OR n.last_viewed_at < $3)
-          AND n.updated_at < $3
-        ORDER BY n.id, ec.embedding <=> $1::vector
+        SELECT * FROM (
+            SELECT DISTINCT ON (n.id) n.id, n.title,
+                   1 - (ec.embedding <=> $1::vector) as similarity
+            FROM notes n
+            JOIN embedding_chunks ec ON ec.entity_id = n.id AND ec.entity_type = 'note'
+            WHERE n.user_id = $2::uuid
+              AND n.deleted_at IS NULL
+              AND (n.last_viewed_at IS NULL OR n.last_viewed_at < $3)
+              AND n.updated_at < $3
+            ORDER BY n.id, ec.embedding <=> $1::vector
+        ) sub
+        ORDER BY similarity DESC
+        LIMIT 5
         """,
         str(recent_embedding["embedding"]),
         user_id,
         thirty_days_ago,
     )
 
-    results = sorted(
-        [{"id": str(r["id"]), "title": r["title"] or "Untitled", "similarity": float(r["similarity"])} for r in rows],
-        key=lambda x: -x["similarity"],
-    )
-    return results[:5]
+    return [
+        {"id": str(r["id"]), "title": r["title"] or "Untitled", "similarity": float(r["similarity"])}
+        for r in rows
+    ]
 
 
 async def _on_this_day(conn, user_id: str) -> list[dict]:
@@ -144,7 +147,12 @@ async def _cluster_alerts(conn, user_id: str) -> list[dict]:
 
     linked_pairs = set()
     link_rows = await conn.fetch(
-        "SELECT source_id, target_id FROM note_links",
+        """
+        SELECT nl.source_id, nl.target_id FROM note_links nl
+        JOIN notes n ON nl.source_id = n.id
+        WHERE n.user_id = $1::uuid
+        """,
+        user_id,
     )
     for lr in link_rows:
         linked_pairs.add((str(lr["source_id"]), str(lr["target_id"])))

@@ -13,6 +13,18 @@ DEBOUNCE_SECONDS = 300
 async def process_job(job_data: dict):
     job_type = job_data["type"]
 
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            UPDATE ai_job_logs SET status = 'processing'
+            WHERE entity_type = $1 AND entity_id = $2::uuid AND job_type = $3 AND status = 'queued'
+            """,
+            job_data.get("entity_type", ""),
+            job_data.get("entity_id", ""),
+            job_type,
+        )
+
     if job_type == "embed":
         await embed_entity(
             entity_type=job_data["entity_type"],

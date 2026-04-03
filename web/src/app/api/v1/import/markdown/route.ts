@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-guard";
 import { enqueueAIJob } from "@/lib/queue";
 import { success, badRequest, unauthorized } from "@/lib/api-response";
+import { extractPlainText } from "@/lib/tiptap-utils";
 
 export async function POST(req: NextRequest) {
   let user;
@@ -37,13 +38,14 @@ export async function POST(req: NextRequest) {
         userId: user.id!,
         title,
         content: tiptapContent,
-        contentPlain: text,
+        contentPlain: extractPlainText(tiptapContent as any),
         isSensitive: false,
       },
     });
 
+    const plainText = extractPlainText(tiptapContent as any);
     await enqueueAIJob(user.id!, "note", note.id, "embed", {
-      text: `${title}\n${text}`,
+      text: `${title}\n${plainText}`,
       is_sensitive: false,
     });
 

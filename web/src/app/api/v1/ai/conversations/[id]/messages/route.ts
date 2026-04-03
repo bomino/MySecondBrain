@@ -33,12 +33,12 @@ export async function POST(req: NextRequest, { params }: Params) {
     },
   });
 
-  await db.chatConversation.update({
-    where: { id },
-    data: {
-      title: parsed.data.role === "user" ? parsed.data.content.slice(0, 50) : undefined,
-    },
-  });
+  if (parsed.data.role === "user" && conversation.title === "New conversation") {
+    await db.chatConversation.update({
+      where: { id },
+      data: { title: parsed.data.content.slice(0, 50) },
+    });
+  }
 
   return success(message, 201);
 }
