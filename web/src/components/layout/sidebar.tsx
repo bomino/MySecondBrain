@@ -7,7 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useUIStore } from "@/stores/ui-store";
 import { useAIStatus } from "@/hooks/use-ai-status";
 import { cn } from "@/lib/utils";
-import { todayLocalStr } from "@/lib/date-utils";
+import { useState, useEffect } from "react";
 
 const NAV_ITEMS = [
   { href: "/notes", label: "Notes", icon: FileText },
@@ -22,6 +22,12 @@ export function Sidebar() {
   const { sidebarOpen, theme, setTheme } = useUIStore();
   const { data: session } = useSession();
   const { data: aiStatus } = useAIStatus();
+  const [todayStr, setTodayStr] = useState("");
+
+  useEffect(() => {
+    const d = new Date();
+    setTodayStr(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+  }, []);
 
   if (!sidebarOpen) return null;
 
@@ -119,7 +125,7 @@ export function Sidebar() {
 
       <div className="px-3 pb-2">
         <a
-          href={`/journal/${todayLocalStr()}`}
+          href={`/journal/${todayStr || "today"}`}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium nav-item"
           style={{ color: "var(--text-secondary)" }}
         >
