@@ -32,13 +32,13 @@ export async function getUserAIConfig(userId: string): Promise<AIConfig> {
   return {
     routingMode: s.aiRoutingMode ?? process.env.AI_ROUTING_MODE ?? "hybrid",
     anthropicApiKey: s.anthropicApiKey ?? process.env.ANTHROPIC_API_KEY ?? "",
-    ollamaBaseUrl: s.ollamaBaseUrl ?? process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
-    chatModelCloud: s.chatModelCloud ?? "claude-sonnet-4-6-20250514",
-    chatModelLocal: s.chatModelLocal ?? "llama3",
-    embeddingModel: s.embeddingModel ?? "nomic-embed-text",
+    ollamaBaseUrl: s.ollamaBaseUrl ?? "",
+    chatModelCloud: s.chatModelCloud ?? "",
+    chatModelLocal: s.chatModelLocal ?? "",
+    embeddingModel: s.embeddingModel ?? "",
     cloudProvider: s.cloudProvider ?? "anthropic",
-    openaiBaseUrl: s.openaiBaseUrl ?? "https://api.openai.com",
+    openaiBaseUrl: s.openaiBaseUrl ?? "",
     openaiApiKey: s.openaiApiKey ?? "",
-    openaiModel: s.openaiModel ?? "gpt-4o",
+    openaiModel: s.openaiModel ?? "",
   };
 }

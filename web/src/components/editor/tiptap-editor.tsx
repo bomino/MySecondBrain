@@ -36,6 +36,7 @@ export function TiptapEditor({
   const { editorFontSize, editorLineHeight } = useUIStore();
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({ codeBlock: false }),
       CodeBlockLowlight.configure({ lowlight }),
