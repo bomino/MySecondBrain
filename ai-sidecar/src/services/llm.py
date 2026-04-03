@@ -67,6 +67,9 @@ async def _cloud_generate(prompt: str, system: str, config: dict | None = None) 
         return await _openai_compatible_generate(prompt, system, config)
 
     api_key = (config or {}).get("api_key") or settings.anthropic_api_key
+    if not api_key:
+        return await _ollama_generate(prompt, system, config)
+
     model = (config or {}).get("chat_model_cloud") or settings.chat_model_cloud
     client = anthropic.AsyncAnthropic(api_key=api_key)
     message = await client.messages.create(
