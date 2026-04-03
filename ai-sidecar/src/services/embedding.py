@@ -1,3 +1,4 @@
+import numpy as np
 import tiktoken
 from pgvector.asyncpg import register_vector
 from config import settings
@@ -41,16 +42,17 @@ async def embed_entity(entity_type: str, entity_id: str, text: str, is_sensitive
 
         for i, chunk in enumerate(chunks):
             embedding = await generate_embedding(chunk, provider)
+            embedding_vector = np.array(embedding, dtype=np.float32)
             await conn.execute(
                 """
                 INSERT INTO embedding_chunks (id, entity_type, entity_id, chunk_index, chunk_text, embedding, created_at)
-                VALUES (gen_random_uuid(), $1, $2::uuid, $3, $4, $5::vector, NOW())
+                VALUES (gen_random_uuid(), $1, $2::uuid, $3, $4, $5, NOW())
                 """,
                 entity_type,
                 entity_id,
                 i,
                 chunk,
-                str(embedding),
+                embedding_vector,
             )
 
     return len(chunks)

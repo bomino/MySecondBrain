@@ -1,3 +1,4 @@
+import numpy as np
 from fastapi import APIRouter
 from pydantic import BaseModel
 from pgvector.asyncpg import register_vector
@@ -59,7 +60,7 @@ async def get_related(req: RelatedRequest):
             ORDER BY ec.entity_type, ec.entity_id, ec.embedding <=> $1::vector
             LIMIT $5
             """,
-            str(source_embedding["embedding"]),
+            np.array(source_embedding["embedding"], dtype=np.float32),
             req.user_id,
             req.entity_type,
             req.entity_id,

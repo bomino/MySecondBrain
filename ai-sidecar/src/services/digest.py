@@ -1,3 +1,4 @@
+import numpy as np
 from datetime import datetime, timedelta
 from db import get_pool
 from pgvector.asyncpg import register_vector
@@ -58,7 +59,7 @@ async def _forgotten_relevance(conn, user_id: str) -> list[dict]:
         ORDER BY similarity DESC
         LIMIT 5
         """,
-        str(recent_embedding["embedding"]),
+        np.array(recent_embedding["embedding"], dtype=np.float32),
         user_id,
         thirty_days_ago,
     )

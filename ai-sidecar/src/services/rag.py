@@ -1,3 +1,4 @@
+import numpy as np
 from pgvector.asyncpg import register_vector
 from db import get_pool
 from services.llm import generate_embedding, generate_text
@@ -36,7 +37,7 @@ async def retrieve_context(query: str, user_id: str, top_k: int = 10, config: di
             ORDER BY ec.embedding <=> $1::vector
             LIMIT $3
             """,
-            str(embedding),
+            np.array(embedding, dtype=np.float32),
             user_id,
             top_k,
         )
@@ -98,7 +99,7 @@ async def chat(query: str, user_id: str, routing_choice: str = "local", config: 
             seen.add(key)
             sources.append({
                 "type": c["entity_type"],
-                "id": c["entity_id"],
+                "id": str(c["entity_id"]),
                 "title": c.get("title", "Unknown"),
                 "similarity": float(c["similarity"]),
             })
