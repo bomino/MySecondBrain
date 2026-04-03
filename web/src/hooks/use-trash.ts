@@ -52,3 +52,51 @@ export function useRestoreJournalEntry() {
     onError: () => toast("Failed to restore journal entry", "error"),
   });
 }
+
+export function useEmptyTrash() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/v1/notes/trash", { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to empty trash");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
+      toast(`Permanently deleted ${data.deleted} items`, "success");
+    },
+    onError: () => toast("Failed to empty trash", "error"),
+  });
+}
+
+export function usePermanentDeleteNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/v1/notes/${id}/permanent`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete permanently");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
+      toast("Permanently deleted", "success");
+    },
+    onError: () => toast("Failed to delete permanently", "error"),
+  });
+}
+
+export function usePermanentDeleteJournalEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (date: string) => {
+      const res = await fetch(`/api/v1/journal/${date}/permanent`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete permanently");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trash"] });
+      toast("Permanently deleted", "success");
+    },
+    onError: () => toast("Failed to delete permanently", "error"),
+  });
+}

@@ -3,6 +3,37 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth-guard";
 import { success, unauthorized } from "@/lib/api-response";
 
+export async function DELETE(_req: NextRequest) {
+  let user;
+  try { user = await requireAuth(); } catch { return unauthorized(); }
+
+  const noteIds = (await db.note.findMany({
+    where: { userId: user.id!, deletedAt: { not: null } },
+    select: { id: true },
+  })).map((n) => n.id);
+
+  const entryIds = (await db.journalEntry.findMany({
+    where: { userId: user.id!, deletedAt: { not: null } },
+    select: { id: true },
+  })).map((e) => e.id);
+
+  await db.$transaction([
+    ...(noteIds.length > 0 ? [
+      db.embeddingChunk.deleteMany({ where: { entityType: "note", entityId: { in: noteIds } } }),
+      db.taggable.deleteMany({ where: { entityType: "note", entityId: { in: noteIds } } }),
+      db.noteLink.deleteMany({ where: { OR: [{ sourceId: { in: noteIds } }, { targetId: { in: noteIds } }] } }),
+    ] : []),
+    ...(entryIds.length > 0 ? [
+      db.embeddingChunk.deleteMany({ where: { entityType: "journal_entry", entityId: { in: entryIds } } }),
+      db.taggable.deleteMany({ where: { entityType: "journal_entry", entityId: { in: entryIds } } }),
+    ] : []),
+    db.note.deleteMany({ where: { userId: user.id!, deletedAt: { not: null } } }),
+    db.journalEntry.deleteMany({ where: { userId: user.id!, deletedAt: { not: null } } }),
+  ]);
+
+  return success({ deleted: noteIds.length + entryIds.length });
+}
+
 export async function GET(_req: NextRequest) {
   let user;
   try { user = await requireAuth(); } catch { return unauthorized(); }
