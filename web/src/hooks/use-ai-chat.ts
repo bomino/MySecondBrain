@@ -32,19 +32,6 @@ export function useConversations(search?: string) {
   });
 }
 
-export function useConversationMessages(conversationId: string | null) {
-  return useQuery({
-    queryKey: ["conversation", conversationId],
-    queryFn: async () => {
-      if (!conversationId) return null;
-      const res = await fetch(`/api/v1/ai/conversations/${conversationId}`);
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data as { id: string; title: string; messages: ChatMessage[] };
-    },
-    enabled: !!conversationId,
-  });
-}
 
 export function useAIChat() {
   const queryClient = useQueryClient();
@@ -110,7 +97,20 @@ export function useAIChat() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: "user", content: query }),
-    }).catch(() => toast("Failed to save message", "error"));
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((saved) => {
+        if (saved?.id) {
+          setMessages((prev) => {
+            const idx = prev.findIndex((m) => m.role === "user" && m.content === query && !m.id);
+            if (idx === -1) return prev;
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], id: saved.id };
+            return updated;
+          });
+        }
+      })
+      .catch(() => toast("Failed to save message", "error"));
 
     const recentMessages = messagesRef.current.slice(-10).map((m) => ({
       role: m.role,
@@ -180,7 +180,21 @@ export function useAIChat() {
             content: lastMsg.content,
             sources: lastMsg.sources,
           }),
-        }).catch(() => toast("Failed to save response", "error"));
+        })
+          .then((r) => r.ok ? r.json() : null)
+          .then((saved) => {
+            if (saved?.id) {
+              setMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last?.role === "assistant" && !last.id) {
+                  updated[updated.length - 1] = { ...last, id: saved.id };
+                }
+                return updated;
+              });
+            }
+          })
+          .catch(() => toast("Failed to save response", "error"));
       }
 
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -253,17 +267,38 @@ export function useAIChat() {
     if (!convId) return;
 
     const currentMessages = messagesRef.current;
-    const lastAssistant = [...currentMessages].reverse().find((m) => m.role === "assistant");
-    const lastUser = [...currentMessages].reverse().find((m) => m.role === "user");
-    if (!lastAssistant || !lastUser) return;
+    const lastAssistantIdx = currentMessages.findLastIndex((m) => m.role === "assistant");
+    if (lastAssistantIdx === -1) return;
+
+    const lastAssistant = currentMessages[lastAssistantIdx];
+    const precedingUserIdx = currentMessages.slice(0, lastAssistantIdx).findLastIndex((m) => m.role === "user");
+    if (precedingUserIdx === -1) return;
+
+    const lastUser = currentMessages[precedingUserIdx];
 
     if (lastAssistant.id) {
-      fetch(`/api/v1/ai/conversations/${convId}/messages/${lastAssistant.id}`, {
-        method: "DELETE",
-      }).catch(() => {});
+      try {
+        const res = await fetch(`/api/v1/ai/conversations/${convId}/messages/${lastAssistant.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok && res.status !== 204) {
+          toast("Failed to delete previous response", "error");
+          return;
+        }
+      } catch {
+        toast("Failed to delete previous response", "error");
+        return;
+      }
     }
 
-    setMessages((prev) => prev.filter((m) => m !== lastAssistant));
+    setMessages((prev) => {
+      if (lastAssistant.id) {
+        return prev.filter((m) => m.id !== lastAssistant.id);
+      }
+      const updated = [...prev];
+      updated.splice(lastAssistantIdx, 1);
+      return updated;
+    });
     await sendMessage(lastUser.content);
   }, [activeConversationId, sendMessage]);
 

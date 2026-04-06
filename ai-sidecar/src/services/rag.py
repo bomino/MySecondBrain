@@ -61,12 +61,12 @@ def build_multi_turn_prompt(query: str, context: str | None = None, messages: li
 
 async def _generate_followups(answer: str, query: str, provider: str, config: dict | None = None) -> list[str]:
     try:
-        prompt = f"User asked: {query}\n\nYour answer: {answer[:500]}\n\n{FOLLOWUP_PROMPT}"
+        prompt = f"User asked: {query}\n\nYour answer: {answer[:1500]}\n\n{FOLLOWUP_PROMPT}"
         raw = await generate_text(prompt, "You are a helpful assistant.", provider, config)
         lines = [line.strip() for line in raw.strip().split("\n") if line.strip()]
         return lines[:3]
     except Exception:
-        logger.warning("Failed to generate follow-up suggestions")
+        logger.warning("Failed to generate follow-up suggestions", exc_info=True)
         return []
 
 

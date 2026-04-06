@@ -96,7 +96,8 @@ export function ChatPanel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${title.replace(/[^a-zA-Z0-9-_ ]/g, "").slice(0, 50)}.${ext}`;
+    const safeName = title.replace(/[^a-zA-Z0-9-_ ]/g, "").slice(0, 50) || "conversation";
+    a.download = `${safeName}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -180,7 +181,7 @@ export function ChatPanel() {
       <div className="flex flex-1 flex-col">
         {activeConversationId && messages.length > 0 && (
           <div className="flex items-center justify-end px-6 pt-3 pb-1">
-            <div className="relative">
+            <div className="relative" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setShowExport(false); }}>
               <button
                 onClick={() => setShowExport(!showExport)}
                 className="rounded p-1.5 transition-colors duration-150"
