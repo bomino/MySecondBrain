@@ -1,5 +1,5 @@
 import pytest
-from services.rag import filter_chunks_by_similarity, build_system_prompt, MIN_SIMILARITY_THRESHOLD
+from services.rag import filter_chunks_by_similarity, build_system_prompt, build_multi_turn_prompt, MIN_SIMILARITY_THRESHOLD
 
 
 def test_filters_chunks_below_threshold():
@@ -52,3 +52,47 @@ def test_system_prompt_without_context():
     # #then
     assert "did not contain relevant information" in prompt
     assert "general knowledge" in prompt
+
+
+def test_build_multi_turn_prompt_with_history():
+    # #given
+    messages = [
+        {"role": "user", "content": "What are my goals?"},
+        {"role": "assistant", "content": "Based on your notes, you have 3 goals..."},
+    ]
+    new_query = "Tell me more about the second one"
+    context = "[Goals] (note):\nMy goals are: 1. Learn Rust 2. Ship product 3. Exercise"
+
+    # #when
+    result = build_multi_turn_prompt(new_query, context, messages)
+
+    # #then
+    assert "What are my goals?" in result
+    assert "Based on your notes, you have 3 goals" in result
+    assert "Tell me more about the second one" in result
+    assert context in result
+
+
+def test_build_multi_turn_prompt_without_history():
+    # #given
+    new_query = "What did I write?"
+    context = "[Notes] (note):\nSome content"
+
+    # #when
+    result = build_multi_turn_prompt(new_query, context, messages=None)
+
+    # #then
+    assert "What did I write?" in result
+    assert context in result
+
+
+def test_build_multi_turn_prompt_without_context():
+    # #given
+    new_query = "What is the speed of light?"
+
+    # #when
+    result = build_multi_turn_prompt(new_query, context=None, messages=None)
+
+    # #then
+    assert "What is the speed of light?" in result
+    assert "Context from knowledge base" not in result

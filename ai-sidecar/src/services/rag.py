@@ -30,6 +30,23 @@ def build_system_prompt(has_context: bool) -> str:
     return NO_CONTEXT_SYSTEM_PROMPT
 
 
+def build_multi_turn_prompt(query: str, context: str | None = None, messages: list[dict] | None = None) -> str:
+    parts = []
+
+    if context:
+        parts.append(f"Context from knowledge base:\n\n{context}\n\n---\n")
+
+    if messages:
+        parts.append("Conversation history:\n")
+        for msg in messages:
+            role_label = "User" if msg["role"] == "user" else "Assistant"
+            parts.append(f"{role_label}: {msg['content']}\n")
+        parts.append("---\n")
+
+    parts.append(f"Question: {query}")
+    return "\n".join(parts)
+
+
 async def retrieve_context(query: str, user_id: str, top_k: int = 10, config: dict | None = None) -> list[dict]:
     embedding = await generate_embedding(query, "local", config)
 
@@ -59,7 +76,7 @@ async def retrieve_context(query: str, user_id: str, top_k: int = 10, config: di
     return [dict(row) for row in rows]
 
 
-async def chat(query: str, user_id: str, routing_choice: str = "local", config: dict | None = None) -> dict:
+async def chat(query: str, user_id: str, routing_choice: str = "local", config: dict | None = None, messages: list[dict] | None = None) -> dict:
     raw_chunks = await retrieve_context(query, user_id, config=config)
     chunks = filter_chunks_by_similarity(raw_chunks)
 
@@ -72,7 +89,8 @@ async def chat(query: str, user_id: str, routing_choice: str = "local", config: 
             provider = routing_choice
 
         system_prompt = build_system_prompt(has_context=False)
-        answer = await generate_text(query, system_prompt, provider, config)
+        prompt = build_multi_turn_prompt(query, context=None, messages=messages)
+        answer = await generate_text(prompt, system_prompt, provider, config)
 
         return {
             "answer": answer,
@@ -114,7 +132,7 @@ async def chat(query: str, user_id: str, routing_choice: str = "local", config: 
         provider = "local" if has_sensitive and routing_choice == "local" else routing_choice
 
     system_prompt = build_system_prompt(has_context=True)
-    prompt = f"Context from knowledge base:\n\n{context}\n\n---\n\nQuestion: {query}"
+    prompt = build_multi_turn_prompt(query, context, messages)
     answer = await generate_text(prompt, system_prompt, provider, config)
 
     sources = []

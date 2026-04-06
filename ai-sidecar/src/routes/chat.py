@@ -10,6 +10,7 @@ class ChatRequest(BaseModel):
     user_id: str
     routing_choice: str = "local"
     config: dict | None = None
+    messages: list[dict] | None = None
 
 
 class Source(BaseModel):
@@ -28,5 +29,5 @@ class ChatResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    result = await chat(req.query, req.user_id, req.routing_choice, req.config)
+    result = await chat(req.query, req.user_id, req.routing_choice, req.config, req.messages)
     return ChatResponse(**result)
