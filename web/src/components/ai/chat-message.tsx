@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, RefreshCw } from "lucide-react";
 import { ChatMarkdown } from "./chat-markdown";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
   sources?: { type: string; id: string; title: string }[];
+  isLast?: boolean;
+  onRegenerate?: () => void;
 }
 
-export function ChatMessage({ role, content, sources }: ChatMessageProps) {
+export function ChatMessage({ role, content, sources, isLast, onRegenerate }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -31,14 +33,26 @@ export function ChatMessage({ role, content, sources }: ChatMessageProps) {
         }
       >
         {role === "assistant" && content && (
-          <button
-            onClick={handleCopy}
-            className="absolute right-2 top-2 rounded p-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-            style={{ color: "var(--text-faint)", backgroundColor: "var(--background)" }}
-            aria-label="Copy message"
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-          </button>
+          <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+            <button
+              onClick={handleCopy}
+              className="rounded p-1"
+              style={{ color: "var(--text-faint)", backgroundColor: "var(--background)" }}
+              aria-label="Copy message"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+            {isLast && onRegenerate && (
+              <button
+                onClick={onRegenerate}
+                className="rounded p-1"
+                style={{ color: "var(--text-faint)", backgroundColor: "var(--background)" }}
+                aria-label="Regenerate response"
+              >
+                <RefreshCw size={14} />
+              </button>
+            )}
+          </div>
         )}
         {role === "assistant" ? (
           <ChatMarkdown content={content} />
