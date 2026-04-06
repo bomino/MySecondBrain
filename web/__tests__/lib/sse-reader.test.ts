@@ -51,6 +51,21 @@ describe("parseSSELine", () => {
     expect(result?.data.message).toBe("Connection refused");
   });
 
+  it("should parse suggestions event", () => {
+    // #given
+    const lines = [
+      "event: suggestions",
+      'data: {"suggestions": ["Question 1?", "Question 2?", "Question 3?"]}',
+    ];
+
+    // #when
+    const result = parseSSELine(lines);
+
+    // #then
+    expect(result?.event).toBe("suggestions");
+    expect(result?.data.suggestions).toEqual(["Question 1?", "Question 2?", "Question 3?"]);
+  });
+
   it("should return null for empty lines", () => {
     // #when
     const result = parseSSELine([]);

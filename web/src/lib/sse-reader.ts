@@ -29,6 +29,7 @@ export function parseSSELine(lines: string[]): SSEEvent | null {
 export interface StreamCallbacks {
   onToken: (text: string) => void;
   onSources: (sources: { type: string; id: string; title: string }[], routedTo: string) => void;
+  onSuggestions: (suggestions: string[]) => void;
   onDone: () => void;
   onError: (message: string) => void;
 }
@@ -69,6 +70,9 @@ export async function readSSEStream(
               parsed.data.sources as { type: string; id: string; title: string }[],
               parsed.data.routed_to as string
             );
+            break;
+          case "suggestions":
+            callbacks.onSuggestions(parsed.data.suggestions as string[]);
             break;
           case "done":
             callbacks.onDone();
