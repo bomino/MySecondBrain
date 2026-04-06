@@ -14,7 +14,7 @@ docker-compose.yml      PostgreSQL + pgvector, Redis, MinIO, web, ai-sidecar, ai
 
 | Layer | Tech |
 |-------|------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS 4, Tiptap, TanStack Query, Zustand |
+| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS 4, Tiptap, TanStack Query, Zustand, react-markdown, rehype-highlight, rehype-sanitize |
 | API | Next.js API Routes (REST, `/api/v1/`) |
 | Database | PostgreSQL + pgvector (Prisma ORM) |
 | Cache/Queue | Redis (ioredis) |
@@ -78,7 +78,8 @@ Notes, Journal, Search, Graph, Import, Export, Trash, **AI Chat** (with status d
 | POST | `/embed` | Generate and store embeddings for a content chunk |
 | POST | `/search` | Semantic search (RAG retrieval) |
 | POST | `/summarize` | Summarize note or journal entry |
-| POST | `/chat` | Streaming RAG chat response |
+| POST | `/chat` | Non-streaming RAG chat response (JSON) |
+| POST | `/chat/stream` | Streaming RAG chat via SSE (token-by-token) |
 | POST | `/tag-suggestions` | Generate auto-tag suggestions |
 | POST | `/related` | Semantic similarity search for related content |
 | POST | `/digest` | Generate daily digest (4 heuristics) |
@@ -88,7 +89,7 @@ All sidecar routes accept an optional `config` dict for per-request overrides of
 
 #### OpenAI-compatible generation
 
-`llm.py` exposes `_openai_compatible_generate()` which is invoked by `_cloud_generate()` when `cloud_provider` is set to `openai_compatible` in user settings. This enables any OpenAI API-compatible service (OpenAI, Groq, Together AI, Mistral, vLLM, LM Studio, etc.).
+`llm.py` exposes `_openai_compatible_generate()` which is invoked by `_cloud_generate()` when `cloud_provider` is set to `openai_compatible` in user settings. This enables any OpenAI API-compatible service (OpenAI, Groq, Together AI, Mistral, vLLM, LM Studio, etc.). Streaming equivalents live in `llm_stream.py`: `stream_ollama()`, `stream_anthropic()`, `stream_openai_compatible()`, routed via `generate_text_stream()`.
 
 #### Embedding storage format
 
@@ -105,6 +106,45 @@ In `hybrid` routing mode with no `ANTHROPIC_API_KEY` set, non-sensitive requests
 4. Results written to DB as `TagSuggestion` with status `pending_review`
 5. Frontend amber banner polls `/api/v1/ai/suggestions/[id]` every 10s and renders chips when found
 6. User accepts → `PUT /api/v1/ai/suggestions/[id]` applies tag; dismisses → `DELETE`
+
+#### AI Chat streaming pipeline
+
+The chat uses Server-Sent Events (SSE) end-to-end: sidecar streams tokens → Next.js API route relays → browser `ReadableStream` reader renders incrementally.
+
+**SSE event sequence:** `token*` → `sources` → `suggestions` → `done` (or `error`)
+
+| Event | Payload | Purpose |
+|-------|---------|---------|
+| `token` | `{"text": "..."}` | Incremental text chunk |
+| `sources` | `{"sources": [...], "routed_to": "...", "has_sensitive_context": bool}` | RAG source citations |
+| `suggestions` | `{"suggestions": ["q1", "q2", "q3"]}` | Follow-up question suggestions |
+| `done` | `{}` | Stream complete |
+| `error` | `{"message": "..."}` | Sanitized error (raw errors logged server-side only) |
+
+**Key modules:**
+- `ai-sidecar/src/services/llm_stream.py` — streaming generators for Ollama, Anthropic, OpenAI-compatible + SSE formatters
+- `ai-sidecar/src/services/rag.py` — `chat_stream()` generator, similarity threshold filtering (`MIN_SIMILARITY_THRESHOLD = 0.3`), multi-turn prompt building, follow-up suggestion generation
+- `web/src/lib/sse-reader.ts` — `readSSEStream()` parses SSE events from `ReadableStream` with typed callbacks
+- `web/src/lib/ai-client.ts` — `streamSidecar()` returns raw Response for SSE relay; `callSidecar()` for JSON endpoints
+
+**Multi-turn context:** Frontend sends last 10 messages in the POST body. Sidecar builds a prompt combining RAG context + conversation history + new query. Uses `messagesRef` (not state) to avoid stale closures.
+
+**Similarity threshold:** RAG chunks below 0.3 cosine similarity are discarded. When no chunks pass, the LLM answers from general knowledge with a disclaimer prefix. The no-context system prompt includes safety rules ("Never make up information").
+
+**Markdown rendering:** Assistant messages rendered via `react-markdown` + `rehype-sanitize` (XSS defense) + `rehype-highlight` (syntax highlighting). User messages remain plain text. Styles in `.chat-markdown` class in `globals.css`.
+
+**Chat panel features:**
+- Sidebar: search input (300ms debounce), conversation list, inline rename (double-click), delete, clear all
+- Messages: copy button + regenerate button (last assistant message only) on hover
+- Follow-up suggestion chips below last assistant message (clickable to send)
+- Export dropdown (Markdown / JSON) via client-side Blob download
+- `AbortController` cancels in-flight streams on new message or unmount
+
+**Message ID flow:** After saving messages to DB, the returned `id` is written back into React state so regenerate (DELETE + re-send) works for just-streamed messages.
+
+#### Sidecar request validation
+
+The `/chat` and `/chat/stream` endpoints use a typed `ChatMessage` Pydantic model for the `messages` field: `role` must be `Literal["user", "assistant"]`, `content` is required. Invalid messages are rejected at the request boundary.
 
 ## Dev Commands
 
@@ -168,6 +208,7 @@ docker-compose up -d --build web
 ### AI routes (under `/api/v1/ai/`)
 | Method | Route | Purpose |
 |--------|-------|---------|
+| POST | `/api/v1/ai/chat` | Streaming RAG chat (SSE relay from sidecar); accepts `messages` array for multi-turn |
 | GET | `/api/v1/ai/related/[type]/[id]` | Related notes: semantic (pgvector cosine) + title-match |
 | GET | `/api/v1/ai/digest` | Daily digest (4 heuristics) |
 | POST | `/api/v1/ai/transform` | Text transformation (improve/simplify/expand/summarize) |
@@ -175,7 +216,14 @@ docker-compose up -d --build web
 | GET | `/api/v1/ai/suggestions/[id]` | Fetch a specific tag suggestion |
 | PUT | `/api/v1/ai/suggestions/[id]` | Accept a tag suggestion |
 | DELETE | `/api/v1/ai/suggestions/[id]` | Dismiss a tag suggestion |
+| GET | `/api/v1/ai/conversations` | List conversations (supports `?search=term` for title/content filtering) |
+| POST | `/api/v1/ai/conversations` | Create new conversation |
 | DELETE | `/api/v1/ai/conversations` | Bulk delete all conversations for the authenticated user |
+| GET | `/api/v1/ai/conversations/[id]` | Get conversation with all messages |
+| PATCH | `/api/v1/ai/conversations/[id]` | Rename conversation (title: 1-100 chars) |
+| DELETE | `/api/v1/ai/conversations/[id]` | Delete specific conversation |
+| POST | `/api/v1/ai/conversations/[id]/messages` | Add message to conversation |
+| DELETE | `/api/v1/ai/conversations/[id]/messages/[messageId]` | Delete assistant message (for regenerate) |
 
 ### Other key routes
 | Method | Route | Purpose |
@@ -188,8 +236,6 @@ docker-compose up -d --build web
 | GET/PUT/DELETE | `/api/v1/journal/[date]` | Journal entry CRUD (keyed by date string) |
 | DELETE | `/api/v1/journal/[date]/permanent` | Permanent delete of single journal entry |
 | POST | `/api/v1/ai/summarize/[type]` | Summarize note or journal entry |
-| GET/POST | `/api/v1/ai/conversations` | Chat conversation management |
-| GET/DELETE | `/api/v1/ai/conversations/[id]` | Specific conversation |
 | GET/POST | `/api/v1/templates` | Note templates |
 | GET/PUT | `/api/v1/settings` | User settings CRUD (preferences, editor config, AI provider) |
 | GET/PUT | `/api/v1/auth/profile` | Profile management (email, password, account info) |
@@ -235,6 +281,11 @@ Editor preferences are stored in `localStorage` (not the database):
 - Links endpoint missing `userId` filter
 - Search hook error handling on network failure
 - Sidebar hydration mismatch — "Today" link date computed server-side; fixed with `useEffect`
+
+**AI Chat enhancements (2026 Q2)** delivered 10 features across 2 batches with two-round code review per batch:
+- Batch 1: streaming SSE, multi-turn context (last 10 messages), markdown rendering, similarity threshold filtering (0.3), copy button
+- Batch 2: conversation rename (double-click inline edit), search (debounced title+content), regenerate response, follow-up suggestions (LLM-generated), export (Markdown/JSON)
+- Review fixes: stale closure in streaming hook (messagesRef), side effect in state updater, AbortController for stream cancellation, rehype-sanitize for XSS, error message sanitization in sidecar, typed Pydantic models for request validation, message ID flow-back for regenerate reliability
 
 ## Environment Variables
 

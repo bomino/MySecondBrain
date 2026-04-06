@@ -1,13 +1,22 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth-guard";
-import { callSidecar } from "@/lib/ai-client";
-import { success, badRequest, unauthorized } from "@/lib/api-response";
+import { streamSidecar } from "@/lib/ai-client";
+import { badRequest, unauthorized } from "@/lib/api-response";
 import { getUserAIConfig } from "@/lib/get-user-ai-settings";
 
 const chatSchema = z.object({
   query: z.string().min(1),
   routingChoice: z.enum(["local", "cloud"]).default("local"),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string(),
+      })
+    )
+    .max(10)
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -26,15 +35,11 @@ export async function POST(req: NextRequest) {
 
   const aiConfig = await getUserAIConfig(user.id!);
 
-  const result = await callSidecar<{
-    answer: string;
-    sources: { type: string; id: string; title: string; similarity: number }[];
-    routed_to: string;
-    has_sensitive_context: boolean;
-  }>("/chat", {
+  const sidecarRes = await streamSidecar("/chat/stream", {
     query: parsed.data.query,
     user_id: user.id!,
     routing_choice: parsed.data.routingChoice,
+    messages: parsed.data.messages ?? null,
     config: {
       routing_mode: aiConfig.routingMode,
       api_key: aiConfig.anthropicApiKey,
@@ -48,5 +53,12 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return success(result);
+  return new Response(sidecarRes.body, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

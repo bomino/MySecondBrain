@@ -1,12 +1,14 @@
-import { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/stores/toast-store";
+import { readSSEStream } from "@/lib/sse-reader";
 
 interface ChatMessage {
   id?: string;
   role: "user" | "assistant";
   content: string;
   sources?: { type: string; id: string; title: string }[];
+  suggestions?: string[];
 }
 
 interface Conversation {
@@ -16,36 +18,32 @@ interface Conversation {
   updatedAt: string;
 }
 
-export function useConversations() {
+export function useConversations(search?: string) {
   return useQuery({
-    queryKey: ["conversations"],
+    queryKey: ["conversations", search ?? ""],
     queryFn: async () => {
-      const res = await fetch("/api/v1/ai/conversations");
+      const url = search
+        ? `/api/v1/ai/conversations?search=${encodeURIComponent(search)}`
+        : "/api/v1/ai/conversations";
+      const res = await fetch(url);
       if (!res.ok) return [];
       return res.json() as Promise<Conversation[]>;
     },
   });
 }
 
-export function useConversationMessages(conversationId: string | null) {
-  return useQuery({
-    queryKey: ["conversation", conversationId],
-    queryFn: async () => {
-      if (!conversationId) return null;
-      const res = await fetch(`/api/v1/ai/conversations/${conversationId}`);
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data as { id: string; title: string; messages: ChatMessage[] };
-    },
-    enabled: !!conversationId,
-  });
-}
 
 export function useAIChat() {
   const queryClient = useQueryClient();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const loadConversation = useCallback(async (id: string) => {
     setActiveConversationId(id);
@@ -87,49 +85,135 @@ export function useAIChat() {
       if (!convId) return;
     }
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const userMsg: ChatMessage = { role: "user", content: query };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    await fetch(`/api/v1/ai/conversations/${convId}/messages`, {
+    fetch(`/api/v1/ai/conversations/${convId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: "user", content: query }),
-    }).catch(() => {});
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((saved) => {
+        if (saved?.id) {
+          setMessages((prev) => {
+            const idx = prev.findIndex((m) => m.role === "user" && m.content === query && !m.id);
+            if (idx === -1) return prev;
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], id: saved.id };
+            return updated;
+          });
+        }
+      })
+      .catch(() => toast("Failed to save message", "error"));
+
+    const recentMessages = messagesRef.current.slice(-10).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
       const res = await fetch("/api/v1/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, routingChoice }),
+        body: JSON.stringify({ query, routingChoice, messages: recentMessages }),
+        signal: controller.signal,
       });
 
-      const data = await res.json();
-      const assistantMsg: ChatMessage = {
-        role: "assistant",
-        content: data.answer ?? data.error ?? "No response",
-        sources: data.sources,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err);
+      }
 
-      await fetch(`/api/v1/ai/conversations/${convId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: "assistant",
-          content: assistantMsg.content,
-          sources: assistantMsg.sources,
-        }),
-      }).catch(() => {});
+      await readSSEStream(res, {
+        onToken: (text) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === "assistant") {
+              updated[updated.length - 1] = { ...last, content: last.content + text };
+            }
+            return updated;
+          });
+        },
+        onSources: (sources) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === "assistant") {
+              updated[updated.length - 1] = { ...last, sources };
+            }
+            return updated;
+          });
+        },
+        onSuggestions: (suggestions) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === "assistant") {
+              updated[updated.length - 1] = { ...last, suggestions };
+            }
+            return updated;
+          });
+        },
+        onDone: () => {},
+        onError: (message) => {
+          toast(message, "error");
+        },
+      });
+
+      const finalMessages = messagesRef.current;
+      const lastMsg = finalMessages[finalMessages.length - 1];
+      if (lastMsg?.role === "assistant" && lastMsg.content) {
+        fetch(`/api/v1/ai/conversations/${convId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: "assistant",
+            content: lastMsg.content,
+            sources: lastMsg.sources,
+          }),
+        })
+          .then((r) => r.ok ? r.json() : null)
+          .then((saved) => {
+            if (saved?.id) {
+              setMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last?.role === "assistant" && !last.id) {
+                  updated[updated.length - 1] = { ...last, id: saved.id };
+                }
+                return updated;
+              });
+            }
+          })
+          .catch(() => toast("Failed to save response", "error"));
+      }
 
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Failed to get a response. Please try again." },
-      ]);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setMessages((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last?.role === "assistant" && !last.content) {
+          updated[updated.length - 1] = {
+            ...last,
+            content: "Failed to get a response. Please try again.",
+          };
+        }
+        return updated;
+      });
     } finally {
       setIsLoading(false);
+      abortRef.current = null;
     }
   }, [activeConversationId, startNewConversation, queryClient]);
 
@@ -164,6 +248,60 @@ export function useAIChat() {
     }
   }, [queryClient]);
 
+  const renameConversation = useCallback(async (id: string, title: string) => {
+    try {
+      const res = await fetch(`/api/v1/ai/conversations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    } catch {
+      toast("Failed to rename conversation", "error");
+    }
+  }, [queryClient]);
+
+  const regenerateLastResponse = useCallback(async () => {
+    const convId = activeConversationId;
+    if (!convId) return;
+
+    const currentMessages = messagesRef.current;
+    const lastAssistantIdx = currentMessages.findLastIndex((m) => m.role === "assistant");
+    if (lastAssistantIdx === -1) return;
+
+    const lastAssistant = currentMessages[lastAssistantIdx];
+    const precedingUserIdx = currentMessages.slice(0, lastAssistantIdx).findLastIndex((m) => m.role === "user");
+    if (precedingUserIdx === -1) return;
+
+    const lastUser = currentMessages[precedingUserIdx];
+
+    if (lastAssistant.id) {
+      try {
+        const res = await fetch(`/api/v1/ai/conversations/${convId}/messages/${lastAssistant.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok && res.status !== 204) {
+          toast("Failed to delete previous response", "error");
+          return;
+        }
+      } catch {
+        toast("Failed to delete previous response", "error");
+        return;
+      }
+    }
+
+    setMessages((prev) => {
+      if (lastAssistant.id) {
+        return prev.filter((m) => m.id !== lastAssistant.id);
+      }
+      const updated = [...prev];
+      updated.splice(lastAssistantIdx, 1);
+      return updated;
+    });
+    await sendMessage(lastUser.content);
+  }, [activeConversationId, sendMessage]);
+
   return {
     messages,
     isLoading,
@@ -174,5 +312,7 @@ export function useAIChat() {
     startNewConversation,
     deleteConversation,
     clearAllConversations,
+    renameConversation,
+    regenerateLastResponse,
   };
 }
