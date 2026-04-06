@@ -7,6 +7,8 @@ from config import settings
 
 sr = SensitivityRouter(mode=settings.ai_routing_mode)
 
+MIN_SIMILARITY_THRESHOLD = 0.3
+
 SYSTEM_PROMPT = """You are a personal knowledge assistant. Answer questions using ONLY the provided context from the user's notes and journal.
 
 Rules:
@@ -14,6 +16,18 @@ Rules:
 - If the context doesn't contain enough information, say so
 - Be concise and direct
 - Never make up information not present in the context"""
+
+NO_CONTEXT_SYSTEM_PROMPT = """You are a personal knowledge assistant. The user's knowledge base did not contain relevant information for this query. You may answer from your general knowledge, but preface your answer with a brief note that you didn't find relevant notes in their knowledge base."""
+
+
+def filter_chunks_by_similarity(chunks: list[dict]) -> list[dict]:
+    return [c for c in chunks if c.get("similarity", 0) >= MIN_SIMILARITY_THRESHOLD]
+
+
+def build_system_prompt(has_context: bool) -> str:
+    if has_context:
+        return SYSTEM_PROMPT
+    return NO_CONTEXT_SYSTEM_PROMPT
 
 
 async def retrieve_context(query: str, user_id: str, top_k: int = 10, config: dict | None = None) -> list[dict]:
@@ -46,13 +60,24 @@ async def retrieve_context(query: str, user_id: str, top_k: int = 10, config: di
 
 
 async def chat(query: str, user_id: str, routing_choice: str = "local", config: dict | None = None) -> dict:
-    chunks = await retrieve_context(query, user_id, config=config)
+    raw_chunks = await retrieve_context(query, user_id, config=config)
+    chunks = filter_chunks_by_similarity(raw_chunks)
 
-    if not chunks:
+    has_context = len(chunks) > 0
+
+    if not has_context:
+        mode_override = (config or {}).get("routing_mode")
+        provider = sr.get_provider(False, mode_override=mode_override)
+        if not mode_override:
+            provider = routing_choice
+
+        system_prompt = build_system_prompt(has_context=False)
+        answer = await generate_text(query, system_prompt, provider, config)
+
         return {
-            "answer": "I don't have enough information in your knowledge base to answer this question.",
+            "answer": answer,
             "sources": [],
-            "routed_to": routing_choice,
+            "routed_to": provider,
         }
 
     has_sensitive = False
@@ -88,8 +113,9 @@ async def chat(query: str, user_id: str, routing_choice: str = "local", config: 
     if not mode_override:
         provider = "local" if has_sensitive and routing_choice == "local" else routing_choice
 
+    system_prompt = build_system_prompt(has_context=True)
     prompt = f"Context from knowledge base:\n\n{context}\n\n---\n\nQuestion: {query}"
-    answer = await generate_text(prompt, SYSTEM_PROMPT, provider, config)
+    answer = await generate_text(prompt, system_prompt, provider, config)
 
     sources = []
     seen = set()
