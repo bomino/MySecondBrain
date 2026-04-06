@@ -1,4 +1,5 @@
 import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 
 interface ChatMarkdownProps {
@@ -8,7 +9,7 @@ interface ChatMarkdownProps {
 export function ChatMarkdown({ content }: ChatMarkdownProps) {
   return (
     <div className="chat-markdown">
-      <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{content}</ReactMarkdown>
+      <ReactMarkdown rehypePlugins={[rehypeSanitize, rehypeHighlight]}>{content}</ReactMarkdown>
     </div>
   );
 }

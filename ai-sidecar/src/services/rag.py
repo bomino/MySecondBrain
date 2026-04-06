@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from pgvector.asyncpg import register_vector
 from db import get_pool
@@ -6,6 +7,8 @@ from services.llm import generate_embedding, generate_text
 from services.llm_stream import generate_text_stream, format_sse_token, format_sse_sources, format_sse_done, format_sse_error
 from services.sensitivity_router import SensitivityRouter
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 sr = SensitivityRouter(mode=settings.ai_routing_mode)
 
@@ -19,7 +22,12 @@ Rules:
 - Be concise and direct
 - Never make up information not present in the context"""
 
-NO_CONTEXT_SYSTEM_PROMPT = """You are a personal knowledge assistant. The user's knowledge base did not contain relevant information for this query. You may answer from your general knowledge, but preface your answer with a brief note that you didn't find relevant notes in their knowledge base."""
+NO_CONTEXT_SYSTEM_PROMPT = """You are a personal knowledge assistant. The user's knowledge base did not contain relevant information for this query. You may answer from your general knowledge, but preface your answer with a brief note that you didn't find relevant notes in their knowledge base.
+
+Rules:
+- Be concise and direct
+- Never make up information
+- Clearly indicate this is general knowledge, not from their notes"""
 
 
 def filter_chunks_by_similarity(chunks: list[dict]) -> list[dict]:
@@ -236,4 +244,5 @@ async def chat_stream(query: str, user_id: str, routing_choice: str = "local", c
         yield format_sse_done()
 
     except Exception as e:
-        yield format_sse_error(str(e))
+        logger.exception("chat_stream failed")
+        yield format_sse_error("An error occurred while generating a response. Please try again.")

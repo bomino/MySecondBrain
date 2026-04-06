@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/stores/toast-store";
 import { readSSEStream } from "@/lib/sse-reader";
 
@@ -47,6 +47,12 @@ export function useAIChat() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const loadConversation = useCallback(async (id: string) => {
     setActiveConversationId(id);
@@ -88,29 +94,33 @@ export function useAIChat() {
       if (!convId) return;
     }
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const userMsg: ChatMessage = { role: "user", content: query };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    await fetch(`/api/v1/ai/conversations/${convId}/messages`, {
+    fetch(`/api/v1/ai/conversations/${convId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: "user", content: query }),
-    }).catch(() => {});
+    }).catch(() => toast("Failed to save message", "error"));
 
-    const recentMessages = messages.slice(-10).map((m) => ({
+    const recentMessages = messagesRef.current.slice(-10).map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    const assistantMsg: ChatMessage = { role: "assistant", content: "" };
-    setMessages((prev) => [...prev, assistantMsg]);
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
       const res = await fetch("/api/v1/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, routingChoice, messages: recentMessages }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -145,24 +155,23 @@ export function useAIChat() {
         },
       });
 
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && last.content) {
-          fetch(`/api/v1/ai/conversations/${convId}/messages`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              role: "assistant",
-              content: last.content,
-              sources: last.sources,
-            }),
-          }).catch(() => {});
-        }
-        return prev;
-      });
+      const finalMessages = messagesRef.current;
+      const lastMsg = finalMessages[finalMessages.length - 1];
+      if (lastMsg?.role === "assistant" && lastMsg.content) {
+        fetch(`/api/v1/ai/conversations/${convId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: "assistant",
+            content: lastMsg.content,
+            sources: lastMsg.sources,
+          }),
+        }).catch(() => toast("Failed to save response", "error"));
+      }
 
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    } catch {
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       setMessages((prev) => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
@@ -176,8 +185,9 @@ export function useAIChat() {
       });
     } finally {
       setIsLoading(false);
+      abortRef.current = null;
     }
-  }, [activeConversationId, messages, startNewConversation, queryClient]);
+  }, [activeConversationId, startNewConversation, queryClient]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

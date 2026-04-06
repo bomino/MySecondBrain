@@ -52,6 +52,7 @@ def test_system_prompt_without_context():
     # #then
     assert "did not contain relevant information" in prompt
     assert "general knowledge" in prompt
+    assert "Never make up information" in prompt
 
 
 def test_build_multi_turn_prompt_with_history():
