@@ -8,6 +8,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   sources?: { type: string; id: string; title: string }[];
+  suggestions?: string[];
 }
 
 interface Conversation {
@@ -17,11 +18,14 @@ interface Conversation {
   updatedAt: string;
 }
 
-export function useConversations() {
+export function useConversations(search?: string) {
   return useQuery({
-    queryKey: ["conversations"],
+    queryKey: ["conversations", search ?? ""],
     queryFn: async () => {
-      const res = await fetch("/api/v1/ai/conversations");
+      const url = search
+        ? `/api/v1/ai/conversations?search=${encodeURIComponent(search)}`
+        : "/api/v1/ai/conversations";
+      const res = await fetch(url);
       if (!res.ok) return [];
       return res.json() as Promise<Conversation[]>;
     },
@@ -149,6 +153,16 @@ export function useAIChat() {
             return updated;
           });
         },
+        onSuggestions: (suggestions) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === "assistant") {
+              updated[updated.length - 1] = { ...last, suggestions };
+            }
+            return updated;
+          });
+        },
         onDone: () => {},
         onError: (message) => {
           toast(message, "error");
@@ -220,6 +234,39 @@ export function useAIChat() {
     }
   }, [queryClient]);
 
+  const renameConversation = useCallback(async (id: string, title: string) => {
+    try {
+      const res = await fetch(`/api/v1/ai/conversations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) throw new Error();
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    } catch {
+      toast("Failed to rename conversation", "error");
+    }
+  }, [queryClient]);
+
+  const regenerateLastResponse = useCallback(async () => {
+    const convId = activeConversationId;
+    if (!convId) return;
+
+    const currentMessages = messagesRef.current;
+    const lastAssistant = [...currentMessages].reverse().find((m) => m.role === "assistant");
+    const lastUser = [...currentMessages].reverse().find((m) => m.role === "user");
+    if (!lastAssistant || !lastUser) return;
+
+    if (lastAssistant.id) {
+      fetch(`/api/v1/ai/conversations/${convId}/messages/${lastAssistant.id}`, {
+        method: "DELETE",
+      }).catch(() => {});
+    }
+
+    setMessages((prev) => prev.filter((m) => m !== lastAssistant));
+    await sendMessage(lastUser.content);
+  }, [activeConversationId, sendMessage]);
+
   return {
     messages,
     isLoading,
@@ -230,5 +277,7 @@ export function useAIChat() {
     startNewConversation,
     deleteConversation,
     clearAllConversations,
+    renameConversation,
+    regenerateLastResponse,
   };
 }
