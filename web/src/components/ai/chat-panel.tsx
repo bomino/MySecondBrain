@@ -110,7 +110,7 @@ export function ChatPanel() {
           {messages.map((msg, i) => (
             <ChatMessage key={i} {...msg} />
           ))}
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="text-sm" style={{ color: "var(--text-faint)" }}>
               <span className="inline-flex gap-1">
                 <span className="animate-pulse">.</span>
