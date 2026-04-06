@@ -1,7 +1,9 @@
 import numpy as np
 from pgvector.asyncpg import register_vector
 from db import get_pool
+from typing import AsyncGenerator
 from services.llm import generate_embedding, generate_text
+from services.llm_stream import generate_text_stream, format_sse_token, format_sse_sources, format_sse_done, format_sse_error
 from services.sensitivity_router import SensitivityRouter
 from config import settings
 
@@ -154,3 +156,84 @@ async def chat(query: str, user_id: str, routing_choice: str = "local", config: 
         "routed_to": provider,
         "has_sensitive_context": has_sensitive,
     }
+
+
+async def chat_stream(query: str, user_id: str, routing_choice: str = "local", config: dict | None = None, messages: list[dict] | None = None) -> AsyncGenerator[str, None]:
+    try:
+        raw_chunks = await retrieve_context(query, user_id, config=config)
+        chunks = filter_chunks_by_similarity(raw_chunks)
+        has_context = len(chunks) > 0
+
+        if not has_context:
+            mode_override = (config or {}).get("routing_mode")
+            provider = sr.get_provider(False, mode_override=mode_override)
+            if not mode_override:
+                provider = routing_choice
+
+            prompt = build_multi_turn_prompt(query, context=None, messages=messages)
+            system = build_system_prompt(has_context=False)
+
+            async for token in generate_text_stream(prompt, system, provider, config):
+                yield format_sse_token(token)
+
+            yield format_sse_sources([], provider, False)
+            yield format_sse_done()
+            return
+
+        has_sensitive = False
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            for chunk in chunks:
+                if chunk["entity_type"] == "note":
+                    row = await conn.fetchrow(
+                        "SELECT is_sensitive, title FROM notes WHERE id = $1::uuid",
+                        chunk["entity_id"],
+                    )
+                else:
+                    row = await conn.fetchrow(
+                        "SELECT is_sensitive, TO_CHAR(date, 'YYYY-MM-DD') as title FROM journal_entries WHERE id = $1::uuid",
+                        chunk["entity_id"],
+                    )
+                if row:
+                    chunk["title"] = row["title"] or "Untitled"
+                    if row["is_sensitive"]:
+                        has_sensitive = True
+                        chunk["is_sensitive"] = True
+
+        if has_sensitive and routing_choice == "cloud":
+            chunks = [c for c in chunks if not c.get("is_sensitive")]
+
+        context = "\n\n---\n\n".join(
+            f"[{c.get('title', 'Unknown')}] ({c['entity_type']}):\n{c['chunk_text']}"
+            for c in chunks
+        )
+
+        mode_override = (config or {}).get("routing_mode")
+        provider = sr.get_provider(has_sensitive and routing_choice == "local", mode_override=mode_override)
+        if not mode_override:
+            provider = "local" if has_sensitive and routing_choice == "local" else routing_choice
+
+        prompt = build_multi_turn_prompt(query, context, messages)
+        system = build_system_prompt(has_context=True)
+
+        async for token in generate_text_stream(prompt, system, provider, config):
+            yield format_sse_token(token)
+
+        sources = []
+        seen = set()
+        for c in chunks:
+            key = f"{c['entity_type']}:{c['entity_id']}"
+            if key not in seen:
+                seen.add(key)
+                sources.append({
+                    "type": c["entity_type"],
+                    "id": str(c["entity_id"]),
+                    "title": c.get("title", "Unknown"),
+                    "similarity": float(c["similarity"]),
+                })
+
+        yield format_sse_sources(sources, provider, has_sensitive)
+        yield format_sse_done()
+
+    except Exception as e:
+        yield format_sse_error(str(e))

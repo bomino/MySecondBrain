@@ -1,6 +1,7 @@
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from services.rag import chat
+from services.rag import chat, chat_stream
 
 router = APIRouter()
 
@@ -31,3 +32,12 @@ class ChatResponse(BaseModel):
 async def chat_endpoint(req: ChatRequest):
     result = await chat(req.query, req.user_id, req.routing_choice, req.config, req.messages)
     return ChatResponse(**result)
+
+
+@router.post("/chat/stream")
+async def chat_stream_endpoint(req: ChatRequest):
+    return StreamingResponse(
+        chat_stream(req.query, req.user_id, req.routing_choice, req.config, req.messages),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
