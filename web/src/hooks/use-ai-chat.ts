@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/stores/toast-store";
+import { readSSEStream } from "@/lib/sse-reader";
 
 interface ChatMessage {
   id?: string;
@@ -97,41 +98,86 @@ export function useAIChat() {
       body: JSON.stringify({ role: "user", content: query }),
     }).catch(() => {});
 
+    const recentMessages = messages.slice(-10).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const assistantMsg: ChatMessage = { role: "assistant", content: "" };
+    setMessages((prev) => [...prev, assistantMsg]);
+
     try {
       const res = await fetch("/api/v1/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, routingChoice }),
+        body: JSON.stringify({ query, routingChoice, messages: recentMessages }),
       });
 
-      const data = await res.json();
-      const assistantMsg: ChatMessage = {
-        role: "assistant",
-        content: data.answer ?? data.error ?? "No response",
-        sources: data.sources,
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err);
+      }
 
-      await fetch(`/api/v1/ai/conversations/${convId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: "assistant",
-          content: assistantMsg.content,
-          sources: assistantMsg.sources,
-        }),
-      }).catch(() => {});
+      await readSSEStream(res, {
+        onToken: (text) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === "assistant") {
+              updated[updated.length - 1] = { ...last, content: last.content + text };
+            }
+            return updated;
+          });
+        },
+        onSources: (sources) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === "assistant") {
+              updated[updated.length - 1] = { ...last, sources };
+            }
+            return updated;
+          });
+        },
+        onDone: () => {},
+        onError: (message) => {
+          toast(message, "error");
+        },
+      });
+
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last.content) {
+          fetch(`/api/v1/ai/conversations/${convId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              role: "assistant",
+              content: last.content,
+              sources: last.sources,
+            }),
+          }).catch(() => {});
+        }
+        return prev;
+      });
 
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Failed to get a response. Please try again." },
-      ]);
+      setMessages((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last?.role === "assistant" && !last.content) {
+          updated[updated.length - 1] = {
+            ...last,
+            content: "Failed to get a response. Please try again.",
+          };
+        }
+        return updated;
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [activeConversationId, startNewConversation, queryClient]);
+  }, [activeConversationId, messages, startNewConversation, queryClient]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
