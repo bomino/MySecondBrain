@@ -14,3 +14,18 @@ export async function callSidecar<T>(path: string, body: unknown): Promise<T> {
 
   return res.json();
 }
+
+export async function streamSidecar(path: string, body: unknown): Promise<Response> {
+  const res = await fetch(`${AI_SIDECAR_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Sidecar error (${res.status}): ${err}`);
+  }
+
+  return res;
+}
