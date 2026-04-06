@@ -1,5 +1,5 @@
 import pytest
-from services.llm_stream import format_sse_token, format_sse_sources, format_sse_done, format_sse_error
+from services.llm_stream import format_sse_token, format_sse_sources, format_sse_done, format_sse_error, format_sse_suggestions
 
 
 def test_format_sse_token():
@@ -36,3 +36,27 @@ def test_format_sse_error():
 
     assert "event: error" in result
     assert "Connection refused" in result
+
+
+def test_format_sse_suggestions():
+    # #given
+    suggestions = ["What else did I write?", "Tell me more about that", "Any related notes?"]
+
+    # #when
+    result = format_sse_suggestions(suggestions)
+
+    # #then
+    assert "event: suggestions" in result
+    assert '"suggestions"' in result
+    assert "What else did I write?" in result
+    assert "Tell me more about that" in result
+    assert "Any related notes?" in result
+
+
+def test_format_sse_suggestions_empty():
+    # #when
+    result = format_sse_suggestions([])
+
+    # #then
+    assert "event: suggestions" in result
+    assert '"suggestions": []' in result

@@ -28,6 +28,10 @@ def format_sse_error(message: str) -> str:
     return f'event: error\ndata: {json.dumps({"message": message})}\n\n'
 
 
+def format_sse_suggestions(suggestions: list[str]) -> str:
+    return f"event: suggestions\ndata: {json.dumps({'suggestions': suggestions})}\n\n"
+
+
 async def stream_ollama(prompt: str, system: str, config: dict | None = None) -> AsyncGenerator[str, None]:
     base_url = (config or {}).get("ollama_url") or settings.ollama_base_url
     model = (config or {}).get("chat_model_local") or settings.chat_model_local
