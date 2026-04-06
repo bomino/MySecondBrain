@@ -4,7 +4,7 @@ from pgvector.asyncpg import register_vector
 from db import get_pool
 from typing import AsyncGenerator
 from services.llm import generate_embedding, generate_text
-from services.llm_stream import generate_text_stream, format_sse_token, format_sse_sources, format_sse_done, format_sse_error
+from services.llm_stream import generate_text_stream, format_sse_token, format_sse_sources, format_sse_done, format_sse_error, format_sse_suggestions
 from services.sensitivity_router import SensitivityRouter
 from config import settings
 
@@ -28,6 +28,8 @@ Rules:
 - Be concise and direct
 - Never make up information
 - Clearly indicate this is general knowledge, not from their notes"""
+
+FOLLOWUP_PROMPT = """Based on the answer you just gave and the context provided, suggest exactly 3 short follow-up questions the user might ask next. Return ONLY the questions, one per line, no numbering or bullets."""
 
 
 def filter_chunks_by_similarity(chunks: list[dict]) -> list[dict]:
@@ -55,6 +57,17 @@ def build_multi_turn_prompt(query: str, context: str | None = None, messages: li
 
     parts.append(f"Question: {query}")
     return "\n".join(parts)
+
+
+async def _generate_followups(answer: str, query: str, provider: str, config: dict | None = None) -> list[str]:
+    try:
+        prompt = f"User asked: {query}\n\nYour answer: {answer[:500]}\n\n{FOLLOWUP_PROMPT}"
+        raw = await generate_text(prompt, "You are a helpful assistant.", provider, config)
+        lines = [line.strip() for line in raw.strip().split("\n") if line.strip()]
+        return lines[:3]
+    except Exception:
+        logger.warning("Failed to generate follow-up suggestions")
+        return []
 
 
 async def retrieve_context(query: str, user_id: str, top_k: int = 10, config: dict | None = None) -> list[dict]:
@@ -181,10 +194,17 @@ async def chat_stream(query: str, user_id: str, routing_choice: str = "local", c
             prompt = build_multi_turn_prompt(query, context=None, messages=messages)
             system = build_system_prompt(has_context=False)
 
+            collected_answer = []
             async for token in generate_text_stream(prompt, system, provider, config):
+                collected_answer.append(token)
                 yield format_sse_token(token)
 
             yield format_sse_sources([], provider, False)
+
+            followups = await _generate_followups("".join(collected_answer), query, provider, config)
+            if followups:
+                yield format_sse_suggestions(followups)
+
             yield format_sse_done()
             return
 
@@ -224,7 +244,9 @@ async def chat_stream(query: str, user_id: str, routing_choice: str = "local", c
         prompt = build_multi_turn_prompt(query, context, messages)
         system = build_system_prompt(has_context=True)
 
+        collected_answer = []
         async for token in generate_text_stream(prompt, system, provider, config):
+            collected_answer.append(token)
             yield format_sse_token(token)
 
         sources = []
@@ -241,6 +263,11 @@ async def chat_stream(query: str, user_id: str, routing_choice: str = "local", c
                 })
 
         yield format_sse_sources(sources, provider, has_sensitive)
+
+        followups = await _generate_followups("".join(collected_answer), query, provider, config)
+        if followups:
+            yield format_sse_suggestions(followups)
+
         yield format_sse_done()
 
     except Exception as e:
